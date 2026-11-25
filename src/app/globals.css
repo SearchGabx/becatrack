@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
+/* Paleta Oficial Manual Normativo de Marca CUC (Universidad de la Costa)
+   Auburn:           #A3161A (RGB 163, 22, 26 · PANTONE 7621 C)
+   Satin Sheen Gold: #C9A227 (RGB 201, 162, 39 · PANTONE 7555 C)
+   Gold:             #FCD116 (RGB 252, 209, 22 · PANTONE Yellow 012 C)
+   Forest Green:     #078930 (RGB 7, 137, 48 · PANTONE 355 C)
+   Davy's Gray:      #595959 (RGB 89, 89, 89 · PANTONE 425 C)
+   Silver Dark:      #A5A5A5 (RGB 165, 165, 165 · PANTONE 422 C)
+   Silver:           #CCCCCC (RGB 204, 204, 204 · PANTONE 427 C)
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f7f7;
+  --foreground: #262626;
+  --cuc-auburn: #a3161a;
+  --cuc-satin-gold: #c9a227;
+  --cuc-gold: #fcd116;
+  --cuc-forest-green: #078930;
+  --cuc-davys-gray: #595959;
+  --cuc-silver-dark: #a5a5a5;
+  --cuc-silver: #cccccc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-red-hat), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-red-hat), ui-sans-serif, system-ui, sans-serif;
+}
+
+.cuc-gradient {
+  background: linear-gradient(135deg, #a3161a 0%, #680d10 100%);
 }

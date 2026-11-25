@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  BECARIO
+  DEPENDENCIA
+}
+
+enum EstadoRegistro {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+}
+
+enum EstadoTarea {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADA
+}
+
+model Usuario {
+  id           String       @id @default(cuid())
+  nombre       String
+  email        String?      @unique
+  passwordHash String
+  rol          Rol
+  activo       Boolean      @default(true)
+  becario      Becario?
+  dependencia  Dependencia?
+  creadoEn     DateTime     @default(now())
+}
+
+// CRM: ficha del becario
+model Becario {
+  id              String            @id @default(cuid())
+  usuarioId       String            @unique
+  usuario         Usuario           @relation(fields: [usuarioId], references: [id])
+  documento       String            @unique
+  programa        String
+  semestre        Int?
+  telefono        String?
+  horasRequeridas Int               @default(100)
+  registros       RegistroHoras[]
+  asignaciones    AsignacionStaff[]
+  tareas          Tarea[]
+  seguimientos    Seguimiento[]
+  creadoEn        DateTime          @default(now())
+}
+
+// CRM: historial de contacto con el becario
+model Seguimiento {
+  id        String   @id @default(cuid())
+  becarioId String
+  becario   Becario  @relation(fields: [becarioId], references: [id], onDelete: Cascade)
+  tipo      String   // llamada, reunión, correo, observación
+  nota      String
+  fecha     DateTime @default(now())
+}
+
+model Dependencia {
+  id          String          @id @default(cuid())
+  nombre      String          @unique
+  responsable String
+  email       String?
+  activa      Boolean         @default(true)
+  usuarioId   String?         @unique
+  usuario     Usuario?        @relation(fields: [usuarioId], references: [id])
+  registros   RegistroHoras[]
+}
+
+model RegistroHoras {
+  id            String         @id @default(cuid())
+  becarioId     String
+  becario       Becario        @relation(fields: [becarioId], references: [id])
+  dependenciaId String
+  dependencia   Dependencia    @relation(fields: [dependenciaId], references: [id])
+  fecha         DateTime
+  horas         Decimal        @db.Decimal(4, 1)
+  actividad     String
+  estado        EstadoRegistro @default(PENDIENTE)
+  creadoEn      DateTime       @default(now())
+
+  @@index([becarioId])
+}
+
+model Evento {
+  id           String            @id @default(cuid())
+  nombre       String
+  fecha        DateTime
+  lugar        String
+  cupos        Int
+  asignaciones AsignacionStaff[]
+}
+
+model AsignacionStaff {
+  id        String  @id @default(cuid())
+  eventoId  String
+  evento    Evento  @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  becarioId String
+  becario   Becario @relation(fields: [becarioId], references: [id])
+  funcion   String  // logística, registro, protocolo...
+  horas     Decimal @db.Decimal(4, 1) @default(0)
+
+  @@unique([eventoId, becarioId])
+}
+
+model Tarea {
+  id          String      @id @default(cuid())
+  becarioId   String
+  becario     Becario     @relation(fields: [becarioId], references: [id])
+  titulo      String
+  descripcion String?
+  fechaLimite DateTime
+  estado      EstadoTarea @default(PENDIENTE)
+  creadoEn    DateTime    @default(now())
+}
+
+// Módulo de Horario y Disponibilidad (integrado desde horario-app)
+model Student {
+  id              String     @id // documento
+  nombre_completo String
+  nombre_norm     String
+  promo           String?
+  correo          String?
+  contacto        String?
+  municipio       String?
+  programa        String?
+  actualizado_en  String?
+  schedules       Schedule[]
+
+  @@index([nombre_norm])
+}
+
+model Schedule {
+  id              Int      @id @default(autoincrement())
+  studentId       String
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  promocion       String?
+  periodo         String?
+  dia             String
+
+  hora_inicio     String   // e.g. "06:30"
+  hora_fin        String   // e.g. "08:30"
+  hora_inicio_min Int      // e.g. 390
+  hora_fin_min    Int      // e.g. 510
+
+  prog            String?
+  codigo_clase    String?
+  materia         String
+  docente         String?
+
+  @@index([studentId])
+  @@index([dia, hora_inicio_min, hora_fin_min])
+}
