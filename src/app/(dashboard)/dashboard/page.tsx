@@ -17,7 +17,7 @@ import { CucLogo } from '@/components/ui/CucLogo';
 const DESCRIPCIONES_MODULO: Record<Modulo, string> = {
   crm: 'Ficha académica del becario, buscador por documento y bitácora de seguimientos estilo Atomic CRM.',
   horario: 'Consulta de horario académico y bloques de disponibilidad (módulo existente pendiente de integración).',
-  asistencia: 'Control de asistencia con código QR institucional (módulo existente pendiente de integración).',
+  asistencia: 'Reuniones con registro de entrada y salida por código QR firmado y reporte en Excel.',
   conteoHoras: 'Progreso acumulado de horas sociales aprobadas más horas de Staff en eventos.',
   registroHoras: 'Reporte de horas realizadas en dependencias por documento del becario y flujo de aprobación.',
   dependencias: 'Gestión de unidades académicas y administrativas habilitadas en la CUC.',
