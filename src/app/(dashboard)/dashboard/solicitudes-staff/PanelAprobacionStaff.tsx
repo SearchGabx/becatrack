@@ -339,7 +339,7 @@ export function PanelAprobacionStaff({
                           }
                         }}
                         placeholder="Pega aquí (Ctrl+V) las filas copiadas con 'Copiar seleccionados' desde Horario y Disponibilidad..."
-                        className="flex-1 rounded-lg border border-[#CCCCCC] p-2 text-xs font-mono focus:border-[#A3161A] focus:outline-none"
+                        className="flex-1 rounded-lg border border-[#CCCCCC] p-2 text-xs font-mono focus:ring-1 focus:ring-[#A3161A] focus:outline-none"
                       />
                       {textoActual.trim() && (
                         <button
@@ -376,7 +376,7 @@ export function PanelAprobacionStaff({
                           [j.id]: e.target.value,
                         }))
                       }
-                      className="flex-1 min-w-[220px] rounded-lg border border-[#CCCCCC] bg-white p-2 text-xs focus:border-[#A3161A] focus:outline-none"
+                      className="flex-1 min-w-55 rounded-lg border border-[#CCCCCC] bg-white p-2 text-xs focus:ring-1 focus:ring-[#A3161A] focus:outline-none"
                     >
                       <option value="">
                         + O agregar un becario individualmente a esta jornada...
@@ -461,7 +461,7 @@ export function PanelAprobacionStaff({
             value={observacion}
             onChange={(e) => setObservacion(e.target.value)}
             placeholder="Nota u observación opcional para la dependencia..."
-            className="w-full rounded-lg border border-[#CCCCCC] bg-white p-2 text-xs focus:border-[#A3161A] focus:outline-none"
+            className="w-full rounded-lg border border-[#CCCCCC] bg-white p-2 text-xs focus:ring-1 focus:ring-[#A3161A] focus:outline-none"
           />
 
           <div className="flex flex-wrap items-center gap-2">
