@@ -12,6 +12,7 @@ import {
 import {
   aprobarSolicitudStaff,
   rechazarSolicitudStaff,
+  eliminarSolicitudStaff,
 } from '@/modules/solicitudes-staff/actions';
 import type {
   BecarioDisponibleDTO,
@@ -215,6 +216,16 @@ export function PanelAprobacionStaff({
     });
   }
 
+  function eliminar() {
+    if (!window.confirm('¿Eliminar definitivamente esta solicitud de apoyo Staff?')) {
+      return;
+    }
+    setAvisoGlobal(null);
+    startTransition(async () => {
+      await eliminarSolicitudStaff(solicitudId);
+    });
+  }
+
   const totalCargados = jornadas.reduce(
     (acc, j) => acc + (seleccionPorJornada[j.id]?.length ?? 0),
     0,
@@ -233,15 +244,26 @@ export function PanelAprobacionStaff({
             : `Gestionar solicitud y pegar listados por jornada (${jornadas.length} jornada(s))`}
         </button>
 
-        <a
-          href="/dashboard/horario"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 rounded-lg border border-[#A3161A] bg-white px-2.5 py-1 text-xs font-bold text-[#A3161A] hover:bg-[#A3161A] hover:text-white transition-colors"
-        >
-          <span>Abrir Horario y Disponibilidad</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/dashboard/horario"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#A3161A] bg-white px-2.5 py-1 text-xs font-bold text-[#A3161A] hover:bg-[#A3161A] hover:text-white transition-colors"
+          >
+            <span>Abrir Horario y Disponibilidad</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          <button
+            type="button"
+            disabled={pendiente}
+            onClick={eliminar}
+            className="inline-flex items-center gap-1 rounded-lg border border-[#CCCCCC] bg-white px-2.5 py-1 text-xs font-bold text-[#595959] hover:border-[#A3161A] hover:text-[#A3161A] transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>Eliminar solicitud</span>
+          </button>
+        </div>
       </div>
 
       {abierto && (

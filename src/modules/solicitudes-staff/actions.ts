@@ -248,3 +248,16 @@ export async function rechazarSolicitudStaff(entrada: {
   revalidatePath(RUTA);
   return { ok: true, mensaje: 'Solicitud marcada como rechazada.' };
 }
+
+export async function eliminarSolicitudStaff(
+  solicitudId: string,
+): Promise<{ ok: boolean; mensaje: string }> {
+  const usuario = await requireModule('solicitudesStaff');
+  if (usuario.rol !== 'ADMIN') {
+    return { ok: false, mensaje: 'Solo el administrador puede eliminar solicitudes.' };
+  }
+  await db.solicitudStaff.deleteMany({ where: { id: solicitudId } });
+  revalidatePath(RUTA);
+  revalidatePath('/dashboard/staff');
+  return { ok: true, mensaje: 'Solicitud eliminada.' };
+}
