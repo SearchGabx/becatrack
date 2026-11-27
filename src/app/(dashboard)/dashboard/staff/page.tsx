@@ -1,13 +1,16 @@
 import { CalendarCheck2 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
+import { solicitudesAsignadasBecario } from '@/modules/solicitudes-staff/becario';
 import { FormStaff } from './FormStaff';
+import { MisSolicitudesStaff } from './MisSolicitudesStaff';
 
 export default async function StaffPage() {
   const usuario = await requireModule('staff');
   const esAdmin = usuario.rol === 'ADMIN';
+  const esBecario = usuario.rol === 'BECARIO';
 
-  const [eventos, becarios] = await Promise.all([
+  const [eventos, becarios, misSolicitudes] = await Promise.all([
     db.evento.findMany({
       where:
         usuario.rol === 'BECARIO'
@@ -45,6 +48,7 @@ export default async function StaffPage() {
           orderBy: { usuario: { nombre: 'asc' } },
         })
       : Promise.resolve([]),
+    esBecario ? solicitudesAsignadasBecario(usuario.id) : Promise.resolve([]),
   ]);
 
   return (
@@ -73,7 +77,12 @@ export default async function StaffPage() {
         />
       )}
 
+      {esBecario && <MisSolicitudesStaff solicitudes={misSolicitudes} />}
+
       <div className="space-y-4">
+        {esBecario && eventos.length > 0 && (
+          <h2 className="text-lg font-bold text-[#262626]">Eventos institucionales</h2>
+        )}
         {eventos.map((e) => (
           <article
             key={e.id}

@@ -5,7 +5,7 @@ const globalForPrisma = globalThis as unknown as {
   prismaSchemaVersion?: string;
 };
 
-const CURRENT_SCHEMA_VERSION = 'v2-debeCambiarClave-qroa';
+const CURRENT_SCHEMA_VERSION = 'v4-solicitudes-jornadas';
 
 if (globalForPrisma.prismaSchemaVersion !== CURRENT_SCHEMA_VERSION) {
   globalForPrisma.prisma = undefined;

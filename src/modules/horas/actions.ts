@@ -36,6 +36,21 @@ export async function registrarHoras(
   });
   if (!becario) return 'No existe un becario con ese documento.';
 
+  if (usuario.rol === 'DEPENDENCIA') {
+    const asignado = await db.asignacionDependencia.findUnique({
+      where: {
+        dependenciaId_becarioId: {
+          dependenciaId: dependencia.id,
+          becarioId: becario.id,
+        },
+      },
+      select: { id: true },
+    });
+    if (!asignado) {
+      return 'Solo puedes registrar horas a los becarios asignados a tu dependencia.';
+    }
+  }
+
   await db.registroHoras.create({
     data: {
       becarioId: becario.id,

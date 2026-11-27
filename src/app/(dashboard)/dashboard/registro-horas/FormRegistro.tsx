@@ -2,12 +2,23 @@
 import { useActionState } from 'react';
 import { registrarHoras } from '@/modules/horas/actions';
 
-type Props = {
-  dependencias?: { id: string; nombre: string }[]; // solo para el admin
+type BecarioAsignado = {
+  id: string;
+  documento: string;
+  nombre: string;
+  programa: string;
 };
 
-export function FormRegistro({ dependencias }: Props) {
+type Props = {
+  dependencias?: { id: string; nombre: string }[]; // solo para el admin
+  becariosAsignados?: BecarioAsignado[]; // solo para la dependencia
+};
+
+export function FormRegistro({ dependencias, becariosAsignados }: Props) {
   const [mensaje, accion, cargando] = useActionState(registrarHoras, undefined);
+  const esDependencia = becariosAsignados !== undefined;
+  const sinAsignados = esDependencia && becariosAsignados.length === 0;
+
   return (
     <form
       action={accion}
@@ -18,21 +29,45 @@ export function FormRegistro({ dependencias }: Props) {
           Registrar nuevas horas sociales
         </h2>
         <p className="text-xs text-[#595959]">
-          Ingresa el documento del becario (ej. <code>1000000000</code>), fecha, horas
-          (0.5 a 12) y actividad realizada.
+          {esDependencia
+            ? 'Selecciona el becario asignado a tu dependencia, fecha, horas (0.5 a 12) y actividad realizada.'
+            : 'Ingresa el documento del becario (ej. 1000000000), fecha, horas (0.5 a 12) y actividad realizada.'}
         </p>
       </div>
-      <input
-        name="documento"
-        placeholder="Documento del becario"
-        required
-        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
-      />
+      {esDependencia ? (
+        <select
+          name="documento"
+          required
+          disabled={sinAsignados}
+          defaultValue=""
+          className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm bg-white focus:border-[#A3161A] focus:outline-none disabled:bg-[#F7F7F7] disabled:text-[#595959]"
+        >
+          <option value="" disabled>
+            {sinAsignados
+              ? 'No tienes becarios asignados aún'
+              : 'Selecciona un becario asignado...'}
+          </option>
+          {becariosAsignados.map((b) => (
+            <option key={b.id} value={b.documento}>
+              {b.nombre} — Doc: {b.documento}
+              {b.programa ? ` (${b.programa})` : ''}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          name="documento"
+          placeholder="Documento del becario"
+          required
+          className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
+        />
+      )}
       <input
         name="fecha"
         type="date"
         required
-        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
+        disabled={sinAsignados}
+        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none disabled:bg-[#F7F7F7]"
       />
       <input
         name="horas"
@@ -42,7 +77,8 @@ export function FormRegistro({ dependencias }: Props) {
         max="12"
         placeholder="Horas"
         required
-        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
+        disabled={sinAsignados}
+        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none disabled:bg-[#F7F7F7]"
       />
       {dependencias && (
         <select
@@ -60,11 +96,17 @@ export function FormRegistro({ dependencias }: Props) {
         name="actividad"
         placeholder="Actividad realizada"
         required
-        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm md:col-span-2 focus:border-[#A3161A] focus:outline-none"
+        disabled={sinAsignados}
+        className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm md:col-span-2 focus:border-[#A3161A] focus:outline-none disabled:bg-[#F7F7F7]"
       />
+      {sinAsignados && (
+        <p className="text-xs font-medium text-[#A3161A] md:col-span-2">
+          Aún no tienes estudiantes asignados por el administrador para el servicio social.
+        </p>
+      )}
       <button
-        disabled={cargando}
-        className="rounded-lg bg-[#A3161A] p-2.5 text-sm font-bold text-white hover:bg-[#7A1013] transition-colors md:col-span-2 cursor-pointer"
+        disabled={cargando || sinAsignados}
+        className="rounded-lg bg-[#A3161A] p-2.5 text-sm font-bold text-white hover:bg-[#7A1013] transition-colors md:col-span-2 cursor-pointer disabled:opacity-50"
       >
         {cargando ? 'Registrando...' : 'Registrar horas'}
       </button>

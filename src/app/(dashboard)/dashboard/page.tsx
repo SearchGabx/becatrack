@@ -22,6 +22,7 @@ const DESCRIPCIONES_MODULO: Record<Modulo, string> = {
   registroHoras: 'Reporte de horas realizadas en dependencias por documento del becario y flujo de aprobación.',
   dependencias: 'Gestión de unidades académicas y administrativas habilitadas en la CUC.',
   staff: 'Convocatorias, control de cupos y asignación de becarios a eventos institucionales.',
+  solicitudesStaff: 'Solicitud de apoyo de becarios por fecha y franja horaria con asignación desde Disponibilidad.',
   tareas: 'Tablero de compromisos con cálculo automático de semáforo por fecha límite.',
 };
 
@@ -33,6 +34,7 @@ const ICONOS_TARJETA: Record<Modulo, React.ReactNode> = {
   registroHoras: <FilePlus2 className="h-6 w-6 text-[#C9A227]" />,
   dependencias: <Building2 className="h-6 w-6 text-[#A3161A]" />,
   staff: <CalendarCheck2 className="h-6 w-6 text-[#078930]" />,
+  solicitudesStaff: <CalendarCheck2 className="h-6 w-6 text-[#A3161A]" />,
   tareas: <ListTodo className="h-6 w-6 text-[#A3161A]" />,
 };
 

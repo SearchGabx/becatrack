@@ -11,8 +11,9 @@ describe('permisos por rol', () => {
     expect(puede('BECARIO', 'staff')).toBe(true);
     expect(puede('BECARIO', 'crm')).toBe(false);
   });
-  it('la dependencia solo registra horas', () => {
+  it('la dependencia registra horas y solicita apoyo staff', () => {
     expect(puede('DEPENDENCIA', 'registroHoras')).toBe(true);
+    expect(puede('DEPENDENCIA', 'solicitudesStaff')).toBe(true);
     expect(puede('DEPENDENCIA', 'conteoHoras')).toBe(false);
   });
   it('traduce la URL al módulo', () => {

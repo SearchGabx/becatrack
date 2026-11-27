@@ -104,3 +104,33 @@ export async function eliminarPerfil(id: string) {
   revalidatePath(ruta);
 }
 
+export async function asignarBecarioDependencia(
+  dependenciaId: string,
+  becarioId: string,
+) {
+  await requireModule('dependencias');
+  if (!dependenciaId || !becarioId) return;
+  await db.asignacionDependencia.upsert({
+    where: {
+      dependenciaId_becarioId: { dependenciaId, becarioId },
+    },
+    update: {},
+    create: { dependenciaId, becarioId },
+  });
+  revalidatePath(ruta);
+  revalidatePath('/dashboard/registro-horas');
+}
+
+export async function quitarBecarioDependencia(
+  dependenciaId: string,
+  becarioId: string,
+) {
+  await requireModule('dependencias');
+  if (!dependenciaId || !becarioId) return;
+  await db.asignacionDependencia.deleteMany({
+    where: { dependenciaId, becarioId },
+  });
+  revalidatePath(ruta);
+  revalidatePath('/dashboard/registro-horas');
+}
+

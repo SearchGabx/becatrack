@@ -8,6 +8,7 @@ export const MODULOS = {
   registroHoras: { nombre: 'Registro de horas', ruta: '/dashboard/registro-horas' },
   dependencias: { nombre: 'Dependencias activas', ruta: '/dashboard/dependencias' },
   staff: { nombre: 'Staff y eventos', ruta: '/dashboard/staff' },
+  solicitudesStaff: { nombre: 'Solicitudes Staff', ruta: '/dashboard/solicitudes-staff' },
   tareas: { nombre: 'Tareas pendientes', ruta: '/dashboard/tareas' },
 } as const;
 
@@ -18,7 +19,7 @@ const TODOS = Object.keys(MODULOS) as Modulo[];
 export const PERMISOS: Record<Rol, Modulo[]> = {
   ADMIN: TODOS,
   BECARIO: ['conteoHoras', 'asistencia', 'staff'],
-  DEPENDENCIA: ['registroHoras'],
+  DEPENDENCIA: ['registroHoras', 'solicitudesStaff'],
 };
 
 export function puede(rol: Rol | undefined, modulo: Modulo): boolean {

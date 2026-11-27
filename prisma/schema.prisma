@@ -30,6 +30,12 @@ enum EstadoTarea {
   COMPLETADA
 }
 
+enum EstadoSolicitudStaff {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
 model Usuario {
   id           String       @id @default(cuid())
   nombre       String
@@ -58,12 +64,14 @@ model Becario {
   telefono               String?
   horasRequeridas        Int               @default(100)
   servicioPeriodoLectivo String            @default("En curso")
-  registros       RegistroHoras[]
-  asignaciones    AsignacionStaff[]
-  tareas          Tarea[]
-  seguimientos    Seguimiento[]
-  escaneos        Escaneo[]
-  creadoEn        DateTime          @default(now())
+  registros              RegistroHoras[]
+  asignaciones           AsignacionStaff[]
+  dependenciasAsignadas  AsignacionDependencia[]
+  solicitudesStaff       SolicitudStaffBecario[]
+  tareas                 Tarea[]
+  seguimientos           Seguimiento[]
+  escaneos               Escaneo[]
+  creadoEn               DateTime                @default(now())
 }
 
 // CRM: historial de contacto con el becario
@@ -84,12 +92,76 @@ model Dependencia {
   responsable String
   email       String?
   activa      Boolean         @default(true)
-  usuarioId   String?         @unique
-  usuario     Usuario?        @relation(fields: [usuarioId], references: [id])
-  registros   RegistroHoras[]
+  usuarioId        String?                 @unique
+  usuario          Usuario?                @relation(fields: [usuarioId], references: [id])
+  registros        RegistroHoras[]
+  becarios         AsignacionDependencia[]
+  solicitudesStaff SolicitudStaff[]
 
   @@index([activa])
   @@index([email])
+}
+
+model AsignacionDependencia {
+  id            String      @id @default(cuid())
+  dependenciaId String
+  dependencia   Dependencia @relation(fields: [dependenciaId], references: [id], onDelete: Cascade)
+  becarioId     String
+  becario       Becario     @relation(fields: [becarioId], references: [id], onDelete: Cascade)
+  creadoEn      DateTime    @default(now())
+
+  @@unique([dependenciaId, becarioId])
+  @@index([dependenciaId])
+  @@index([becarioId])
+}
+
+model SolicitudStaff {
+  id                String                  @id @default(cuid())
+  dependenciaId     String
+  dependencia       Dependencia             @relation(fields: [dependenciaId], references: [id], onDelete: Cascade)
+  nombreEvento      String
+  fecha             DateTime
+  horaInicio        String
+  horaFin           String
+  cantidadRequerida Int
+  descripcion       String
+  estado            EstadoSolicitudStaff    @default(PENDIENTE)
+  observacionAdmin  String?
+  jornadas          SolicitudStaffJornada[]
+  becarios          SolicitudStaffBecario[]
+  creadoEn          DateTime                @default(now())
+  actualizadoEn     DateTime                @updatedAt
+
+  @@index([dependenciaId])
+  @@index([estado, fecha])
+}
+
+model SolicitudStaffJornada {
+  id                String                  @id @default(cuid())
+  solicitudId       String
+  solicitud         SolicitudStaff          @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  orden             Int                     @default(1)
+  fecha             DateTime
+  horaInicio        String
+  horaFin           String
+  cantidadRequerida Int
+  becarios          SolicitudStaffBecario[]
+
+  @@index([solicitudId, orden])
+}
+
+model SolicitudStaffBecario {
+  id          String                 @id @default(cuid())
+  solicitudId String
+  solicitud   SolicitudStaff         @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  jornadaId   String?
+  jornada     SolicitudStaffJornada? @relation(fields: [jornadaId], references: [id], onDelete: Cascade)
+  becarioId   String
+  becario     Becario                @relation(fields: [becarioId], references: [id], onDelete: Cascade)
+
+  @@unique([solicitudId, jornadaId, becarioId])
+  @@index([jornadaId])
+  @@index([becarioId])
 }
 
 model RegistroHoras {

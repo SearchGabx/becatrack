@@ -10,11 +10,51 @@ import {
 
 export default async function DependenciasPage() {
   await requireModule('dependencias');
-  const dependencias = await db.dependencia.findMany({
-    where: { OR: [{ activa: true }, { usuarioId: { not: null } }, { email: { not: null } }] },
-    include: { _count: { select: { registros: true } } },
-    orderBy: { nombre: 'asc' },
-  });
+  const [dependencias, becariosDB] = await Promise.all([
+    db.dependencia.findMany({
+      where: {
+        OR: [
+          { activa: true },
+          { usuarioId: { not: null } },
+          { email: { not: null } },
+        ],
+      },
+      include: {
+        _count: { select: { registros: true } },
+        becarios: {
+          select: {
+            becario: {
+              select: {
+                id: true,
+                documento: true,
+                programa: true,
+                usuario: { select: { nombre: true } },
+              },
+            },
+          },
+          orderBy: { becario: { usuario: { nombre: 'asc' } } },
+        },
+      },
+      orderBy: { nombre: 'asc' },
+    }),
+    db.becario.findMany({
+      where: { usuario: { activo: true } },
+      select: {
+        id: true,
+        documento: true,
+        programa: true,
+        usuario: { select: { nombre: true } },
+      },
+      orderBy: { usuario: { nombre: 'asc' } },
+    }),
+  ]);
+
+  const todosBecarios = becariosDB.map((b) => ({
+    id: b.id,
+    documento: b.documento,
+    nombre: b.usuario.nombre,
+    programa: b.programa,
+  }));
 
   return (
     <section className="space-y-6">
@@ -41,17 +81,35 @@ export default async function DependenciasPage() {
               <th className="p-3.5">Nombre</th>
               <th className="p-3.5">Responsable</th>
               <th className="p-3.5">Correo</th>
+              <th className="p-3.5">Becarios asignados</th>
               <th className="p-3.5">Registros</th>
               <th className="p-3.5">Estado</th>
               <th className="p-3.5 text-right">Acción</th>
             </tr>
           </thead>
           <tbody>
-            {dependencias.map((d) => (
+            {dependencias.map((d) => {
+              const asignados = d.becarios.map((a) => ({
+                id: a.becario.id,
+                documento: a.becario.documento,
+                nombre: a.becario.usuario.nombre,
+                programa: a.becario.programa,
+              }));
+              return (
               <tr key={d.id} className="border-t border-[#CCCCCC]/50 hover:bg-[#F7F7F7]/50">
                 <td className="p-3.5 font-bold text-[#262626]">{d.nombre}</td>
                 <td className="p-3.5 text-[#595959]">{d.responsable}</td>
                 <td className="p-3.5 text-[#595959]">{d.email}</td>
+                <td className="p-3.5">
+                  <span className="inline-block rounded-full bg-[#A3161A]/10 px-2.5 py-0.5 text-xs font-bold text-[#A3161A]">
+                    {asignados.length} asignado(s)
+                  </span>
+                  {asignados.length > 0 && (
+                    <p className="mt-1 text-xs text-[#595959] max-w-xs truncate">
+                      {asignados.map((b) => b.nombre).join(', ')}
+                    </p>
+                  )}
+                </td>
                 <td className="p-3.5 font-semibold">{d._count.registros}</td>
                 <td className="p-3.5">
                   <span
@@ -71,6 +129,8 @@ export default async function DependenciasPage() {
                       email: d.email,
                     }}
                     tieneUsuario={Boolean(d.usuarioId)}
+                    becariosAsignados={asignados}
+                    todosBecarios={todosBecarios}
                   />
                   {d.usuarioId && (
                     <form action={alternarActiva.bind(null, d.id, d.activa)}>
@@ -87,7 +147,8 @@ export default async function DependenciasPage() {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

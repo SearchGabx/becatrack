@@ -25,6 +25,7 @@ const ICONOS_MODULO: Record<Modulo, React.ReactNode> = {
   registroHoras: <FilePlus2 className="h-4 w-4" />,
   dependencias: <Building2 className="h-4 w-4" />,
   staff: <CalendarCheck2 className="h-4 w-4" />,
+  solicitudesStaff: <CalendarCheck2 className="h-4 w-4" />,
   tareas: <ListTodo className="h-4 w-4" />,
 };
 

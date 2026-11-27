@@ -8,7 +8,7 @@ export default async function RegistroHorasPage() {
   const usuario = await requireModule('registroHoras');
   const esAdmin = usuario.rol === 'ADMIN';
 
-  const [registros, dependencias] = await Promise.all([
+  const [registros, dependencias, asignacionesDep] = await Promise.all([
     db.registroHoras.findMany({
       where: esAdmin ? {} : { dependencia: { usuarioId: usuario.id } },
       select: {
@@ -33,7 +33,30 @@ export default async function RegistroHorasPage() {
           orderBy: { nombre: 'asc' },
         })
       : Promise.resolve(undefined),
+    !esAdmin
+      ? db.asignacionDependencia.findMany({
+          where: { dependencia: { usuarioId: usuario.id, activa: true } },
+          select: {
+            becario: {
+              select: {
+                id: true,
+                documento: true,
+                programa: true,
+                usuario: { select: { nombre: true } },
+              },
+            },
+          },
+          orderBy: { becario: { usuario: { nombre: 'asc' } } },
+        })
+      : Promise.resolve(undefined),
   ]);
+
+  const becariosAsignados = asignacionesDep?.map((a) => ({
+    id: a.becario.id,
+    documento: a.becario.documento,
+    nombre: a.becario.usuario.nombre,
+    programa: a.becario.programa,
+  }));
 
   return (
     <section className="space-y-6">
@@ -48,7 +71,10 @@ export default async function RegistroHorasPage() {
         </p>
       </div>
 
-      <FormRegistro dependencias={dependencias} />
+      <FormRegistro
+        dependencias={dependencias}
+        becariosAsignados={becariosAsignados}
+      />
 
       <div className="rounded-xl bg-white shadow-sm border border-[#CCCCCC]/70 overflow-x-auto">
         <table className="w-full text-left text-sm">
