@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import QRCode from 'qrcode';
 import { QrCode, ScanLine, BarChart3 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
-import { historialBecario } from '@/modules/asistencia/queries';
+import { historialBecarioPorId } from '@/modules/asistencia/queries';
+import { firmarToken } from '@/modules/asistencia/token';
 import { ETIQUETA_ESTADO, formatoFecha } from '@/modules/asistencia/resumen';
 import { MiQr } from '@/modules/asistencia/components/MiQr';
 import { FormReunion } from '@/modules/asistencia/components/FormReunion';
@@ -30,10 +32,16 @@ export default async function AsistenciaPage() {
   const usuario = await requireModule('asistencia');
 
   if (usuario.rol === 'BECARIO') {
-    const [becario, historial] = await Promise.all([
-      db.becario.findUnique({ where: { usuarioId: usuario.id }, select: { documento: true } }),
-      historialBecario(usuario.id),
-    ]);
+    const becario = await db.becario.findUnique({
+      where: { usuarioId: usuario.id },
+      select: { id: true, documento: true },
+    });
+    const [historial, imagenInicial] = becario
+      ? await Promise.all([
+          historialBecarioPorId(becario.id),
+          QRCode.toDataURL(firmarToken(becario.id), { width: 300, margin: 2 }),
+        ])
+      : [[], null];
     return (
       <section className="space-y-6">
         <Encabezado
@@ -42,7 +50,7 @@ export default async function AsistenciaPage() {
         />
         <div className="rounded-2xl bg-white p-6 shadow-sm border border-[#CCCCCC]/70">
           {becario ? (
-            <MiQr documento={becario.documento} />
+            <MiQr documento={becario.documento} imagenInicial={imagenInicial} />
           ) : (
             <p className="text-sm text-[#595959]">Tu usuario no tiene ficha de becario.</p>
           )}

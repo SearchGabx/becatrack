@@ -8,17 +8,32 @@ export default async function RegistroHorasPage() {
   const usuario = await requireModule('registroHoras');
   const esAdmin = usuario.rol === 'ADMIN';
 
-  const registros = await db.registroHoras.findMany({
-    where: esAdmin ? {} : { dependencia: { usuarioId: usuario.id } },
-    include: {
-      becario: { include: { usuario: true } },
-      dependencia: true,
-    },
-    orderBy: { creadoEn: 'desc' },
-  });
-  const dependencias = esAdmin
-    ? await db.dependencia.findMany({ where: { activa: true } })
-    : undefined;
+  const [registros, dependencias] = await Promise.all([
+    db.registroHoras.findMany({
+      where: esAdmin ? {} : { dependencia: { usuarioId: usuario.id } },
+      select: {
+        id: true,
+        fecha: true,
+        horas: true,
+        actividad: true,
+        estado: true,
+        becario: {
+          select: {
+            documento: true,
+            usuario: { select: { nombre: true } },
+          },
+        },
+        dependencia: { select: { nombre: true } },
+      },
+      orderBy: { creadoEn: 'desc' },
+    }),
+    esAdmin
+      ? db.dependencia.findMany({
+          where: { activa: true },
+          orderBy: { nombre: 'asc' },
+        })
+      : Promise.resolve(undefined),
+  ]);
 
   return (
     <section className="space-y-6">

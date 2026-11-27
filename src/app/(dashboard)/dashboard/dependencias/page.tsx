@@ -2,7 +2,11 @@ import { Building2 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
 import { alternarActiva } from '@/modules/dependencias/actions';
-import { FormDependencia, FormClave, EliminarPerfil } from './FormDependencia';
+import {
+  FormDependencia,
+  FormClave,
+  AdministrarDependencia,
+} from './FormDependencia';
 
 export default async function DependenciasPage() {
   await requireModule('dependencias');
@@ -59,26 +63,15 @@ export default async function DependenciasPage() {
                   </span>
                 </td>
                 <td className="p-3.5 text-right">
-                  <details className="mb-2">
-                    <summary className="cursor-pointer">Administrar</summary>
-                    <FormDependencia
-                      perfil={{
-                        id: d.id,
-                        nombre: d.nombre,
-                        responsable: d.responsable,
-                        email: d.email,
-                      }}
-                    />
-                    {d.usuarioId && <FormClave id={d.id} />}
-                    <EliminarPerfil
-                      perfil={{
-                        id: d.id,
-                        nombre: d.nombre,
-                        responsable: d.responsable,
-                        email: d.email,
-                      }}
-                    />
-                  </details>
+                  <AdministrarDependencia
+                    perfil={{
+                      id: d.id,
+                      nombre: d.nombre,
+                      responsable: d.responsable,
+                      email: d.email,
+                    }}
+                    tieneUsuario={Boolean(d.usuarioId)}
+                  />
                   {d.usuarioId && (
                     <form action={alternarActiva.bind(null, d.id, d.activa)}>
                       <button

@@ -36,12 +36,7 @@ export async function detalleReunion(reunionId: string) {
   return { reunion, filas, conteo: contarAsistencia(filas.map((f) => f.estado)) };
 }
 
-export async function historialBecario(usuarioId: string) {
-  const becario = await db.becario.findUnique({
-    where: { usuarioId },
-    select: { id: true },
-  });
-  if (!becario) return [];
+export async function historialBecarioPorId(becarioId: string) {
   const reuniones = await db.reunion.findMany({
     orderBy: { fecha: 'desc' },
     take: 30,
@@ -49,11 +44,20 @@ export async function historialBecario(usuarioId: string) {
       id: true,
       nombre: true,
       fecha: true,
-      escaneos: { where: { becarioId: becario.id }, select: { tipo: true, fecha: true } },
+      escaneos: { where: { becarioId }, select: { tipo: true, fecha: true } },
     },
   });
   return reuniones.map((r) => ({
     ...r,
     estado: estadoAsistencia(r.escaneos.map((e) => e.tipo)),
   }));
+}
+
+export async function historialBecario(usuarioId: string) {
+  const becario = await db.becario.findUnique({
+    where: { usuarioId },
+    select: { id: true },
+  });
+  if (!becario) return [];
+  return historialBecarioPorId(becario.id);
 }

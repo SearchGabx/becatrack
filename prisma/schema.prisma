@@ -42,6 +42,8 @@ model Usuario {
   becario      Becario?
   dependencia  Dependencia?
   creadoEn     DateTime     @default(now())
+
+  @@index([rol, activo])
 }
 
 // CRM: ficha del becario
@@ -70,6 +72,8 @@ model Seguimiento {
   tipo      String   // llamada, reunión, correo, observación
   nota      String
   fecha     DateTime @default(now())
+
+  @@index([becarioId, fecha(sort: Desc)])
 }
 
 model Dependencia {
@@ -81,6 +85,9 @@ model Dependencia {
   usuarioId   String?         @unique
   usuario     Usuario?        @relation(fields: [usuarioId], references: [id])
   registros   RegistroHoras[]
+
+  @@index([activa])
+  @@index([email])
 }
 
 model RegistroHoras {
@@ -96,8 +103,10 @@ model RegistroHoras {
   creadoEn      DateTime       @default(now())
 
   @@index([becarioId])
+  @@index([becarioId, estado])
   @@index([dependenciaId])
   @@index([estado])
+  @@index([creadoEn(sort: Desc)])
 }
 
 model Evento {
@@ -107,6 +116,8 @@ model Evento {
   lugar        String
   cupos        Int
   asignaciones AsignacionStaff[]
+
+  @@index([fecha])
 }
 
 model AsignacionStaff {
@@ -119,6 +130,7 @@ model AsignacionStaff {
   horas     Decimal @db.Decimal(4, 1) @default(0)
 
   @@unique([eventoId, becarioId])
+  @@index([becarioId])
 }
 
 model Tarea {
@@ -130,6 +142,9 @@ model Tarea {
   fechaLimite DateTime
   estado      EstadoTarea @default(PENDIENTE)
   creadoEn    DateTime    @default(now())
+
+  @@index([becarioId])
+  @@index([fechaLimite])
 }
 
 // Módulo de Horario y Disponibilidad (integrado desde horario-app)
@@ -178,6 +193,8 @@ model Reunion {
   fecha    DateTime  @default(now())
   creadoEn DateTime  @default(now())
   escaneos Escaneo[]
+
+  @@index([fecha(sort: Desc)])
 }
 
 model Escaneo {

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { invalidarEstadoUsuarios } from '@/lib/estado-usuario';
 import { requireModule } from '@/lib/guards';
 
 const perfil = z.object({
@@ -50,6 +51,7 @@ export async function guardarDependencia(
       return 'El nombre o el correo ya está en uso.';
     throw e;
   }
+  invalidarEstadoUsuarios();
   revalidatePath(ruta);
   return claveInicial
     ? `Dependencia creada. Clave inicial: ${claveInicial} (cópiala ahora, no se volverá a mostrar).`
@@ -66,6 +68,7 @@ export async function cambiarClave(id: string | null, _prev: string | undefined,
     where: { rol: 'DEPENDENCIA', dependencia: { is: id === null ? {} : { id } } },
     data: { passwordHash, debeCambiarClave: true },
   });
+  invalidarEstadoUsuarios();
   return 'Contraseña actualizada en ' + result.count + ' perfil(es).';
 }
 
@@ -75,6 +78,7 @@ export async function alternarActiva(id: string, activa: boolean) {
     where: { id, usuarioId: { not: null } },
     data: { activa: !activa },
   });
+  invalidarEstadoUsuarios();
   revalidatePath(ruta);
 }
 
@@ -96,6 +100,7 @@ export async function eliminarPerfil(id: string) {
     }
     if (d.usuarioId) await tx.usuario.delete({ where: { id: d.usuarioId, rol: 'DEPENDENCIA' } });
   });
+  invalidarEstadoUsuarios();
   revalidatePath(ruta);
 }
 

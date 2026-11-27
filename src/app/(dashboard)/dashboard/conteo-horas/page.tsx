@@ -1,18 +1,13 @@
 import { Clock, CheckCircle2, CalendarCheck2 } from 'lucide-react';
-import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
-import { resumenHoras } from '@/modules/horas/queries';
+import { resumenHorasListado } from '@/modules/horas/queries';
 import { BarraProgreso } from '@/components/ui/BarraProgreso';
 
 export default async function ConteoHorasPage() {
   const usuario = await requireModule('conteoHoras');
 
-  const becarios =
-    usuario.rol === 'BECARIO'
-      ? await db.becario.findMany({ where: { usuarioId: usuario.id } })
-      : await db.becario.findMany();
-  const resumenes = await Promise.all(
-    becarios.map((b) => resumenHoras(b.id)),
+  const resumenes = await resumenHorasListado(
+    usuario.rol === 'BECARIO' ? usuario.id : undefined,
   );
 
   return (

@@ -9,10 +9,28 @@ export default async function TareasPage() {
   await requireModule('tareas');
   const [tareas, becarios] = await Promise.all([
     db.tarea.findMany({
-      include: { becario: { include: { usuario: true } } },
+      select: {
+        id: true,
+        titulo: true,
+        descripcion: true,
+        fechaLimite: true,
+        estado: true,
+        becario: {
+          select: {
+            usuario: { select: { nombre: true } },
+          },
+        },
+      },
       orderBy: { fechaLimite: 'asc' },
     }),
-    db.becario.findMany({ include: { usuario: true } }),
+    db.becario.findMany({
+      select: {
+        id: true,
+        documento: true,
+        usuario: { select: { nombre: true } },
+      },
+      orderBy: { usuario: { nombre: 'asc' } },
+    }),
   ]);
 
   return (

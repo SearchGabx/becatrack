@@ -7,22 +7,45 @@ export default async function StaffPage() {
   const usuario = await requireModule('staff');
   const esAdmin = usuario.rol === 'ADMIN';
 
-  const eventos = await db.evento.findMany({
-    where:
-      usuario.rol === 'BECARIO'
-        ? { asignaciones: { some: { becario: { usuarioId: usuario.id } } } }
-        : {},
-    include: {
-      asignaciones: {
-        include: { becario: { include: { usuario: true } } },
+  const [eventos, becarios] = await Promise.all([
+    db.evento.findMany({
+      where:
+        usuario.rol === 'BECARIO'
+          ? { asignaciones: { some: { becario: { usuarioId: usuario.id } } } }
+          : {},
+      select: {
+        id: true,
+        nombre: true,
+        fecha: true,
+        lugar: true,
+        cupos: true,
+        asignaciones: {
+          select: {
+            id: true,
+            funcion: true,
+            horas: true,
+            becario: {
+              select: {
+                usuarioId: true,
+                usuario: { select: { nombre: true } },
+              },
+            },
+          },
+        },
       },
-    },
-    orderBy: { fecha: 'asc' },
-  });
-
-  const becarios = esAdmin
-    ? await db.becario.findMany({ include: { usuario: true } })
-    : [];
+      orderBy: { fecha: 'asc' },
+    }),
+    esAdmin
+      ? db.becario.findMany({
+          select: {
+            id: true,
+            documento: true,
+            usuario: { select: { nombre: true } },
+          },
+          orderBy: { usuario: { nombre: 'asc' } },
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <section className="space-y-6">

@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { CalendarClock, Database } from 'lucide-react';
 import SearchFilters from './SearchFilters';
 import AvailableStudentsTable from './AvailableStudentsTable';
 import WeeklyTimetable, { type TimetableItem } from './WeeklyTimetable';
-import StudentScheduleModal from './StudentScheduleModal';
-import CsvUploadPanel from './CsvUploadPanel';
-import PdfUploadPanel from './PdfUploadPanel';
 import { toMin } from '../constants';
 import type { StudentWithSchedulesDTO } from '../actions';
 import { CucLogo } from '@/components/ui/CucLogo';
 import '../horario.css';
+
+const StudentScheduleModal = dynamic(() => import('./StudentScheduleModal'));
+const CsvUploadPanel = dynamic(() => import('./CsvUploadPanel'));
+const PdfUploadPanel = dynamic(() => import('./PdfUploadPanel'));
 
 interface HorarioWorkspaceProps {
   initPromociones: string[];
@@ -247,11 +249,13 @@ export default function HorarioWorkspace({
               }`}
             />
 
-            <StudentScheduleModal
-              student={modalStudent}
-              horario={modalHorario}
-              onClose={() => setModalStudent(null)}
-            />
+            {modalStudent && (
+              <StudentScheduleModal
+                student={modalStudent}
+                horario={modalHorario}
+                onClose={() => setModalStudent(null)}
+              />
+            )}
           </>
         ) : (
           <>

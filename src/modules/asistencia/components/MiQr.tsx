@@ -1,13 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
 import { RefreshCw } from 'lucide-react';
 import { obtenerTokenQr } from '../actions';
 
 const RENOVACION_MS = 25_000; // igual a RENOVACION_TOKEN_MS en token.ts
 
-export function MiQr({ documento }: { documento: string }) {
-  const [imagen, setImagen] = useState<string | null>(null);
+export function MiQr({
+  documento,
+  imagenInicial = null,
+}: {
+  documento: string;
+  imagenInicial?: string | null;
+}) {
+  const [imagen, setImagen] = useState<string | null>(imagenInicial);
   const [error, setError] = useState<string | null>(null);
   const [segundos, setSegundos] = useState(RENOVACION_MS / 1000);
 
@@ -15,7 +20,10 @@ export function MiQr({ documento }: { documento: string }) {
     let activo = true;
     async function renovar() {
       try {
-        const token = await obtenerTokenQr();
+        const [token, QRCode] = await Promise.all([
+          obtenerTokenQr(),
+          import('qrcode').then((m) => m.default),
+        ]);
         const url = await QRCode.toDataURL(token, { width: 300, margin: 2 });
         if (activo) {
           setImagen(url);
@@ -26,7 +34,9 @@ export function MiQr({ documento }: { documento: string }) {
         if (activo) setError('No se pudo generar el código. Revisa tu conexión.');
       }
     }
-    renovar();
+    if (!imagenInicial) {
+      renovar();
+    }
     const renovacion = setInterval(renovar, RENOVACION_MS);
     const reloj = setInterval(() => setSegundos((s) => Math.max(0, s - 1)), 1000);
     return () => {
@@ -34,7 +44,7 @@ export function MiQr({ documento }: { documento: string }) {
       clearInterval(renovacion);
       clearInterval(reloj);
     };
-  }, []);
+  }, [imagenInicial]);
 
   return (
     <div className="flex flex-col items-center text-center">

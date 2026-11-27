@@ -83,6 +83,7 @@ export function NavLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       aria-current={activo ? 'page' : undefined}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         activo ? 'bg-white text-[#A3161A] shadow-sm' : 'text-white/95 hover:bg-[#7A1013]'

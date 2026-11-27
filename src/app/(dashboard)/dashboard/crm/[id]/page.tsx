@@ -23,9 +23,17 @@ export default async function FichaBecario({
   const [becario, resumen] = await Promise.all([
     db.becario.findUniqueOrThrow({
       where: { id },
-      include: {
-        usuario: true,
-        seguimientos: { orderBy: { fecha: 'desc' } },
+      select: {
+        id: true,
+        documento: true,
+        programa: true,
+        semestre: true,
+        telefono: true,
+        usuario: { select: { nombre: true, email: true } },
+        seguimientos: {
+          orderBy: { fecha: 'desc' },
+          select: { id: true, tipo: true, nota: true, fecha: true },
+        },
       },
     }),
     resumenHoras(id),

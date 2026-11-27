@@ -1,5 +1,5 @@
 'use client';
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { guardarDependencia, cambiarClave, eliminarPerfil } from '@/modules/dependencias/actions';
 
 type Perfil = { id: string; nombre: string; responsable: string; email: string | null };
@@ -91,5 +91,30 @@ export function EliminarPerfil({ perfil }: { perfil: Perfil }) {
     >
       <button className="px-3 py-1 text-red-800">Eliminar perfil</button>
     </form>
+  );
+}
+
+export function AdministrarDependencia({
+  perfil,
+  tieneUsuario,
+}: {
+  perfil: Perfil;
+  tieneUsuario: boolean;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <details
+      className="mb-2"
+      onToggle={(e) => setAbierto(e.currentTarget.open)}
+    >
+      <summary className="cursor-pointer">Administrar</summary>
+      {abierto && (
+        <>
+          <FormDependencia perfil={perfil} />
+          {tieneUsuario && <FormClave id={perfil.id} />}
+          <EliminarPerfil perfil={perfil} />
+        </>
+      )}
+    </details>
   );
 }

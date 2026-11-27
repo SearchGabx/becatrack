@@ -27,9 +27,14 @@ export default async function CrmPage({
           ],
         }
       : {},
-    include: {
-      usuario: true,
-      _count: { select: { seguimientos: true, registros: true } },
+    select: {
+      id: true,
+      documento: true,
+      programa: true,
+      semestre: true,
+      horasRequeridas: true,
+      usuario: { select: { nombre: true, email: true } },
+      _count: { select: { seguimientos: true } },
     },
     orderBy: { creadoEn: 'desc' },
   });
