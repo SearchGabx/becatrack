@@ -2,6 +2,8 @@
 
 import { parse } from 'csv-parse/sync';
 import pdf from 'pdf-parse';
+import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
@@ -250,10 +252,25 @@ export async function previewStudentsCsv(
   return results;
 }
 
+const EstudianteCsvSchema = z.object({
+  id: z.string().regex(/^\d+$/, 'Documento inválido'),
+  nombre_completo: z.string().trim().min(3),
+  promo: z.string().trim().min(1),
+  correo: z.string().trim().min(3),
+  contacto: z.string().trim().min(1),
+  municipio: z.string().trim().min(1),
+  programa: z.string().trim().min(1),
+  estado: z.enum(['Actualizar', 'Nuevo']),
+});
+
 export async function applyStudentsCsv(
-  students: Omit<StudentCsvPreviewRow, 'errores'>[],
+  entrada: Omit<StudentCsvPreviewRow, 'errores'>[],
 ) {
   await requireModule('horario');
+  // Los datos vienen del navegador: se validan de nuevo antes de guardar.
+  const validados = z.array(EstudianteCsvSchema).max(5000).safeParse(entrada);
+  if (!validados.success) throw new Error('El archivo tiene filas inválidas. Vuelve a previsualizarlo.');
+  const students = validados.data;
   let creados = 0;
   let actualizados = 0;
 
@@ -535,11 +552,27 @@ export async function previewSchedulesPdf(
   };
 }
 
-export async function applySchedulesPdf(schedulesData: PdfScheduleRow[]) {
-  await requireModule('horario');
-  if (!schedulesData || schedulesData.length === 0) return 0;
+const FilaHorarioSchema = z.object({
+  Promocion: z.string(),
+  Periodo: z.string(),
+  ID_Estudiante: z.string().min(1),
+  Codigo_Clase: z.string(),
+  Materia: z.string().min(1),
+  Docente: z.string(),
+  Prog: z.string(),
+  Dia: z.enum(['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']),
+  Hora_Inicio: z.string().regex(/^\d{1,2}:\d{2}/),
+  Hora_Fin: z.string().regex(/^\d{1,2}:\d{2}/),
+});
 
-  const schedulesToInsert = [];
+export async function applySchedulesPdf(entrada: PdfScheduleRow[]) {
+  await requireModule('horario');
+  if (!entrada || entrada.length === 0) return 0;
+  const validados = z.array(FilaHorarioSchema).max(20000).safeParse(entrada);
+  if (!validados.success) throw new Error('Los horarios tienen filas inválidas. Vuelve a previsualizar los PDF.');
+  const schedulesData = validados.data;
+
+  const schedulesToInsert: Prisma.ScheduleCreateManyInput[] = [];
   const affectedStudents = new Set<string>();
 
   for (const record of schedulesData) {
@@ -571,17 +604,19 @@ export async function applySchedulesPdf(schedulesData: PdfScheduleRow[]) {
     });
   }
 
-  await db.schedule.deleteMany({
-    where: {
-      studentId: { in: Array.from(affectedStudents) },
+  // Borrar e insertar en una transacción: si algo falla, nadie queda sin horario.
+  await db.$transaction(
+    async (tx) => {
+      await tx.schedule.deleteMany({
+        where: { studentId: { in: Array.from(affectedStudents) } },
+      });
+      const chunkSize = 5000;
+      for (let i = 0; i < schedulesToInsert.length; i += chunkSize) {
+        await tx.schedule.createMany({ data: schedulesToInsert.slice(i, i + chunkSize) });
+      }
     },
-  });
-
-  const chunkSize = 5000;
-  for (let i = 0; i < schedulesToInsert.length; i += chunkSize) {
-    const chunk = schedulesToInsert.slice(i, i + chunkSize);
-    await db.schedule.createMany({ data: chunk });
-  }
+    { timeout: 60_000 },
+  );
 
   revalidatePath('/dashboard/horario');
   return schedulesToInsert.length;

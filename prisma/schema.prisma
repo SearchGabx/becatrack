@@ -96,6 +96,8 @@ model RegistroHoras {
   creadoEn      DateTime       @default(now())
 
   @@index([becarioId])
+  @@index([dependenciaId])
+  @@index([estado])
 }
 
 model Evento {

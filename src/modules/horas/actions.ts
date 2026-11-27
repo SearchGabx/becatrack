@@ -7,7 +7,7 @@ import { requireModule } from '@/lib/guards';
 const RegistroSchema = z.object({
   documento: z.string().min(5),
   dependenciaId: z.string().optional(),
-  fecha: z.coerce.date(),
+  fecha: z.coerce.date().refine((f) => f <= new Date(), 'La fecha no puede ser futura'),
   horas: z.coerce.number().positive().max(12),
   actividad: z.string().min(5),
 });
@@ -19,7 +19,7 @@ export async function registrarHoras(
   const usuario = await requireModule('registroHoras');
   const datos = RegistroSchema.safeParse(Object.fromEntries(formData));
   if (!datos.success) {
-    return 'Revisa los datos: horas entre 0 y 12 y actividad descrita.';
+    return 'Revisa los datos: fecha no futura, horas entre 0 y 12 y actividad descrita.';
   }
 
   // La dependencia solo puede registrar a su nombre; el admin elige la dependencia.
@@ -58,7 +58,9 @@ export async function cambiarEstadoRegistro(
   if (usuario.rol !== 'ADMIN') {
     throw new Error('Solo el administrador aprueba horas');
   }
-  await db.registroHoras.update({ where: { id }, data: { estado } });
+  const nuevo = z.enum(['APROBADO', 'RECHAZADO']).parse(estado);
+  // Solo se decide sobre registros pendientes
+  await db.registroHoras.updateMany({ where: { id, estado: 'PENDIENTE' }, data: { estado: nuevo } });
   revalidatePath('/dashboard/registro-horas');
   revalidatePath('/dashboard/conteo-horas');
 }
