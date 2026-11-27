@@ -4,8 +4,6 @@ import {
   Clock,
   Users,
   CalendarCheck2,
-  ListTodo,
-  Building2,
   ArrowRight,
 } from 'lucide-react';
 import { CucLogo } from '@/components/ui/CucLogo';
@@ -84,16 +82,8 @@ export default function Landing() {
 
       {/* Pie institucional */}
       <footer className="w-full border-t border-white/15 py-5 px-6 text-center text-xs text-white/75">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <span>© 2026 Universidad de la Costa (CUC) · BECATRACK SaaS (Next.js 15 + PostgreSQL 16)</span>
-          <span className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5" /> AWS Academy (EC2 + RDS + Docker + Caddy)
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <ListTodo className="h-3.5 w-3.5" /> Roles: Admin · Becario · Dependencia
-            </span>
-          </span>
+        <div className="max-w-6xl mx-auto flex items-center justify-center">
+          <span>© 2026 Universidad de la Costa (CUC) · BECATRACK</span>
         </div>
       </footer>
     </main>
