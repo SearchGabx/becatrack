@@ -1,5 +1,6 @@
 'use server';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
@@ -22,6 +23,8 @@ export async function guardarDependencia(
   const datos = perfil.safeParse(Object.fromEntries(form));
   if (!datos.success) return 'Revisa el nombre, el responsable y el correo.';
   const { nombre } = datos.data;
+  // Clave inicial aleatoria: se muestra una sola vez al admin y se pide cambiarla al ingresar.
+  const claveInicial = id ? null : randomBytes(6).toString('base64url');
   try {
     await db.$transaction(async (tx) => {
       const anterior = id ? await tx.dependencia.findUniqueOrThrow({ where: { id } }) : null;
@@ -34,7 +37,8 @@ export async function guardarDependencia(
             data: {
               nombre,
               rol: 'DEPENDENCIA',
-              passwordHash: await bcrypt.hash('dependencia2026', 10),
+              passwordHash: await bcrypt.hash(claveInicial ?? randomBytes(12).toString('hex'), 10),
+              debeCambiarClave: true,
             },
           });
       const data = { ...datos.data, usuarioId: usuario.id };
@@ -47,18 +51,20 @@ export async function guardarDependencia(
     throw e;
   }
   revalidatePath(ruta);
-  return id ? 'Perfil actualizado.' : 'Dependencia creada.';
+  return claveInicial
+    ? `Dependencia creada. Clave inicial: ${claveInicial} (cópiala ahora, no se volverá a mostrar).`
+    : 'Perfil actualizado.';
 }
 
 export async function cambiarClave(id: string | null, _prev: string | undefined, form: FormData) {
   await requireModule('dependencias');
   const clave = form.get('password');
-  if (typeof clave !== 'string' || !clave.trim() || Buffer.byteLength(clave) > 72)
-    return 'Escribe una contraseña de hasta 72 bytes.';
+  if (typeof clave !== 'string' || clave.trim().length < 8 || Buffer.byteLength(clave) > 72)
+    return 'La contraseña debe tener entre 8 caracteres y 72 bytes.';
   const passwordHash = await bcrypt.hash(clave, 10);
   const result = await db.usuario.updateMany({
     where: { rol: 'DEPENDENCIA', dependencia: { is: id === null ? {} : { id } } },
-    data: { passwordHash },
+    data: { passwordHash, debeCambiarClave: true },
   });
   return 'Contraseña actualizada en ' + result.count + ' perfil(es).';
 }

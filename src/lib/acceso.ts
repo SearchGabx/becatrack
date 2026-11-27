@@ -1,9 +1,19 @@
 import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
+import { bloqueado, limpiarFallos, registrarFallo } from './limite-intentos';
 
 export async function verificarAcceso(db: PrismaClient, identificador: string, password: string) {
   const login = identificador.trim();
   if (!login || !password) return null;
+  const clave = login.toLowerCase();
+  if (bloqueado(clave)) return null;
+  const usuario = await buscarUsuario(db, login, password);
+  if (usuario) limpiarFallos(clave);
+  else registrarFallo(clave);
+  return usuario;
+}
+
+async function buscarUsuario(db: PrismaClient, login: string, password: string) {
   const correo = { equals: login, mode: 'insensitive' as const };
   const filtro =
     login.toLowerCase() === 'admin'

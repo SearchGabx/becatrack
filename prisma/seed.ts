@@ -22,7 +22,7 @@ async function guardarUsuario(
   const data = { nombre, rol, email, activo, passwordHash };
   return anterior
     ? tx.usuario.update({ where: { id: anterior.id }, data })
-    : tx.usuario.create({ data });
+    : tx.usuario.create({ data: { ...data, debeCambiarClave: rol !== 'ADMIN' } });
 }
 
 function claveHorario({ id, ...campos }: Schedule) {

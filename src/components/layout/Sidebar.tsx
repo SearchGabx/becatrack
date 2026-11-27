@@ -10,6 +10,7 @@ import {
   CalendarCheck2,
   ListTodo,
   LogOut,
+  KeyRound,
 } from 'lucide-react';
 import { signOut } from '@/auth';
 import { MODULOS, PERMISOS, type Modulo, type Rol } from '@/lib/permissions';
@@ -97,6 +98,14 @@ export function Sidebar({
             )}
           </div>
         )}
+
+        <Link
+          href="/dashboard/cuenta"
+          className="flex items-center justify-center gap-2 rounded-lg border border-white/30 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+        >
+          <KeyRound className="h-4 w-4" />
+          <span>Mi cuenta</span>
+        </Link>
 
         <form
           action={async () => {
