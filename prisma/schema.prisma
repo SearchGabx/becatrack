@@ -48,14 +48,16 @@ model Usuario {
 
 // CRM: ficha del becario
 model Becario {
-  id              String            @id @default(cuid())
-  usuarioId       String            @unique
-  usuario         Usuario           @relation(fields: [usuarioId], references: [id])
-  documento       String            @unique
-  programa        String
-  semestre        Int?
-  telefono        String?
-  horasRequeridas Int               @default(100)
+  id                     String            @id @default(cuid())
+  usuarioId              String            @unique
+  usuario                Usuario           @relation(fields: [usuarioId], references: [id])
+  documento              String            @unique
+  promocion              String?
+  programa               String
+  semestre               Int?
+  telefono               String?
+  horasRequeridas        Int               @default(100)
+  servicioPeriodoLectivo String            @default("En curso")
   registros       RegistroHoras[]
   asignaciones    AsignacionStaff[]
   tareas          Tarea[]

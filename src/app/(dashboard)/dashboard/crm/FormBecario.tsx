@@ -46,12 +46,8 @@ export function FormBecario() {
         className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
       />
       <input
-        name="semestre"
-        type="number"
-        min="1"
-        max="12"
-        placeholder="Semestre (1-12)"
-        required
+        name="promocion"
+        placeholder="Promoción (ej. 2026)"
         className="rounded-lg border border-[#CCCCCC] p-2.5 text-sm focus:border-[#A3161A] focus:outline-none"
       />
       <div className="grid grid-cols-2 gap-2">

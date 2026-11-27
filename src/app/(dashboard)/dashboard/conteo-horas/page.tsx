@@ -42,7 +42,8 @@ export default async function ConteoHorasPage() {
                   Doc: {r.becario.documento}
                 </span>
                 <p className="text-xs text-[#595959]">
-                  {r.becario.programa} · Semestre {r.becario.semestre}
+                  {r.becario.programa || 'Sin programa registrado'}
+                  {r.becario.semestre ? ` · Semestre ${r.becario.semestre}` : ''}
                 </p>
               </div>
               <span className="text-base font-extrabold text-[#262626]">

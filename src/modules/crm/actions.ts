@@ -9,8 +9,12 @@ const BecarioSchema = z.object({
   nombre: z.string().min(3),
   email: z.string().trim().toLowerCase().email(),
   documento: z.string().min(5),
+  promocion: z.string().trim().optional(),
   programa: z.string().min(3),
-  semestre: z.coerce.number().int().min(1).max(12),
+  semestre: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.coerce.number().int().min(1).max(12).optional(),
+  ),
   telefono: z.string().optional(),
   horasRequeridas: z.coerce.number().int().positive().default(100),
 });
@@ -22,7 +26,7 @@ export async function crearBecario(
   await requireModule('crm');
   const datos = BecarioSchema.safeParse(Object.fromEntries(formData));
   if (!datos.success) return 'Revisa los datos del becario.';
-  const { nombre, email, ...ficha } = datos.data;
+  const { nombre, email, promocion, ...ficha } = datos.data;
 
   const existe = await db.usuario.findUnique({ where: { email } });
   if (existe) return 'Ya existe un usuario con ese correo.';
@@ -34,11 +38,52 @@ export async function crearBecario(
       data: { nombre, email, passwordHash, rol: 'BECARIO', debeCambiarClave: true },
     });
     await tx.becario.create({
-      data: { ...ficha, usuarioId: usuario.id },
+      data: {
+        ...ficha,
+        promocion: promocion || null,
+        usuarioId: usuario.id,
+      },
     });
   });
   revalidatePath('/dashboard/crm');
   return 'Becario creado.';
+}
+
+export async function actualizarHorasRequeridas(
+  becarioId: string,
+  horasRequeridas: number,
+) {
+  await requireModule('crm');
+  const valor = z.coerce.number().int().min(1).max(1000).safeParse(horasRequeridas);
+  if (!valor.success) return { ok: false, mensaje: 'Valor inválido (1-1000).' };
+
+  await db.becario.update({
+    where: { id: becarioId },
+    data: { horasRequeridas: valor.data },
+  });
+  revalidatePath('/dashboard/crm');
+  revalidatePath(`/dashboard/crm/${becarioId}`);
+  revalidatePath('/dashboard/conteo-horas');
+  return { ok: true };
+}
+
+const ESTADOS_PERIODO = ['En curso', 'Cumplido', 'Pendiente', 'Exonerado'] as const;
+
+export async function actualizarServicioPeriodo(
+  becarioId: string,
+  estado: string,
+) {
+  await requireModule('crm');
+  const valor = z.enum(ESTADOS_PERIODO).safeParse(estado);
+  if (!valor.success) return { ok: false };
+
+  await db.becario.update({
+    where: { id: becarioId },
+    data: { servicioPeriodoLectivo: valor.data },
+  });
+  revalidatePath('/dashboard/crm');
+  revalidatePath(`/dashboard/crm/${becarioId}`);
+  return { ok: true };
 }
 
 export async function agregarSeguimiento(

@@ -6,12 +6,14 @@ import {
   Phone,
   IdCard,
   MessageSquarePlus,
+  Calendar,
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
 import { agregarSeguimiento } from '@/modules/crm/actions';
 import { resumenHoras } from '@/modules/horas/queries';
 import { BarraProgreso } from '@/components/ui/BarraProgreso';
+import { SelectorHorasMeta, SelectorPeriodoLectivo } from '../CeldaAjustableCrm';
 
 export default async function FichaBecario({
   params,
@@ -26,9 +28,11 @@ export default async function FichaBecario({
       select: {
         id: true,
         documento: true,
+        promocion: true,
         programa: true,
-        semestre: true,
         telefono: true,
+        horasRequeridas: true,
+        servicioPeriodoLectivo: true,
         usuario: { select: { nombre: true, email: true } },
         seguimientos: {
           orderBy: { fecha: 'desc' },
@@ -71,10 +75,17 @@ export default async function FichaBecario({
             </p>
             <p className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-[#A3161A]" />
-              <span>
-                {becario.programa} · Semestre {becario.semestre}
-              </span>
+              <span>{becario.programa || 'Sin programa registrado'}</span>
             </p>
+            {becario.promocion && (
+              <p className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[#A3161A]" />
+                <span>
+                  Promoción:{' '}
+                  <strong className="text-[#262626]">{becario.promocion}</strong>
+                </span>
+              </p>
+            )}
             <p className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-[#A3161A]" />
               <span>{becario.usuario.email}</span>
@@ -88,17 +99,30 @@ export default async function FichaBecario({
           </div>
         </div>
 
-        <div className="rounded-xl bg-[#F7F7F7] p-4 border border-[#CCCCCC]/70 flex flex-col justify-between">
-          <div className="flex justify-between text-sm font-bold mb-2">
-            <span>Progreso Horas</span>
-            <span>
-              {resumen.total} / {resumen.requeridas} h ({resumen.porcentaje}%)
-            </span>
+        <div className="rounded-xl bg-[#F7F7F7] p-4 border border-[#CCCCCC]/70 flex flex-col justify-between gap-3">
+          <div>
+            <div className="flex justify-between text-sm font-bold mb-2">
+              <span>Progreso Horas</span>
+              <span>
+                {resumen.total} / {resumen.requeridas} h ({resumen.porcentaje}%)
+              </span>
+            </div>
+            <BarraProgreso porcentaje={resumen.porcentaje} />
+            <p className="mt-2 text-xs text-[#595959]">
+              Dependencias: {resumen.horasRegistro} h · Staff: {resumen.horasStaff} h
+            </p>
           </div>
-          <BarraProgreso porcentaje={resumen.porcentaje} />
-          <p className="mt-2 text-xs text-[#595959]">
-            Dependencias: {resumen.horasRegistro} h · Staff: {resumen.horasStaff} h
-          </p>
+          <div className="pt-2 border-t border-[#CCCCCC]/60 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <SelectorHorasMeta
+              becarioId={becario.id}
+              horasLlevadas={resumen.total}
+              horasRequeridas={becario.horasRequeridas}
+            />
+            <SelectorPeriodoLectivo
+              becarioId={becario.id}
+              estadoInicial={becario.servicioPeriodoLectivo}
+            />
+          </div>
         </div>
       </div>
 

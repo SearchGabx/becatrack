@@ -19,7 +19,11 @@ const ReunionSchema = z.object({
   fecha: z
     .string()
     .optional()
-    .transform((v) => (v ? new Date(v) : new Date()))
+    .transform((v) => {
+      if (!v) return new Date();
+      // Los inputs datetime-local llegan sin zona horaria; se interpretan en America/Bogota (UTC-5)
+      return new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(v) ? v : `${v}-05:00`);
+    })
     .refine((d) => !Number.isNaN(d.getTime()), 'Fecha inválida'),
 });
 

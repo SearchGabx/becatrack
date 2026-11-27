@@ -31,10 +31,6 @@ export default function LoginPage() {
             Plataforma de Seguimiento y Horas Sociales de Becarios CUC
           </h2>
         </div>
-
-        <p className="mt-8 text-xs text-white/70">
-          Manual Normativo de Uso de Imagen CUC · Tipografía Red Hat Display · Paleta Auburn #A3161A
-        </p>
       </div>
 
       {/* Panel derecho: Formulario de Login sobre fondo blanco con Imagotipo Auburn (#A3161A) */}

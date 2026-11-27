@@ -3,6 +3,7 @@ import { Users, Search, Eye, GraduationCap } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireModule } from '@/lib/guards';
 import { FormBecario } from './FormBecario';
+import { SelectorHorasMeta, SelectorPeriodoLectivo } from './CeldaAjustableCrm';
 
 export default async function CrmPage({
   searchParams,
@@ -13,31 +14,55 @@ export default async function CrmPage({
   const { q = '' } = await searchParams;
   const termino = q.trim();
 
-  const becarios = await db.becario.findMany({
-    where: termino
-      ? {
-          OR: [
-            { documento: { contains: termino, mode: 'insensitive' } },
-            { programa: { contains: termino, mode: 'insensitive' } },
-            {
-              usuario: {
-                nombre: { contains: termino, mode: 'insensitive' },
-              },
-            },
-          ],
-        }
-      : {},
-    select: {
-      id: true,
-      documento: true,
-      programa: true,
-      semestre: true,
-      horasRequeridas: true,
-      usuario: { select: { nombre: true, email: true } },
-      _count: { select: { seguimientos: true } },
-    },
-    orderBy: { creadoEn: 'desc' },
-  });
+  const [becarios, registrosAgrupados, staffAgrupado, estudiantesPromo] =
+    await Promise.all([
+      db.becario.findMany({
+        where: termino
+          ? {
+              OR: [
+                { documento: { contains: termino, mode: 'insensitive' } },
+                { programa: { contains: termino, mode: 'insensitive' } },
+                { promocion: { contains: termino, mode: 'insensitive' } },
+                {
+                  usuario: {
+                    nombre: { contains: termino, mode: 'insensitive' },
+                  },
+                },
+              ],
+            }
+          : {},
+        select: {
+          id: true,
+          documento: true,
+          promocion: true,
+          programa: true,
+          horasRequeridas: true,
+          servicioPeriodoLectivo: true,
+          usuario: { select: { nombre: true, email: true } },
+        },
+        orderBy: { creadoEn: 'desc' },
+      }),
+      db.registroHoras.groupBy({
+        by: ['becarioId'],
+        where: { estado: 'APROBADO' },
+        _sum: { horas: true },
+      }),
+      db.asignacionStaff.groupBy({
+        by: ['becarioId'],
+        _sum: { horas: true },
+      }),
+      db.student.findMany({
+        select: { id: true, promo: true },
+      }),
+    ]);
+
+  const mapaRegistro = new Map(
+    registrosAgrupados.map((r) => [r.becarioId, Number(r._sum.horas ?? 0)]),
+  );
+  const mapaStaff = new Map(
+    staffAgrupado.map((s) => [s.becarioId, Number(s._sum.horas ?? 0)]),
+  );
+  const mapaPromo = new Map(estudiantesPromo.map((e) => [e.id, e.promo]));
 
   return (
     <section className="space-y-6">
@@ -54,7 +79,7 @@ export default async function CrmPage({
 
       <FormBecario />
 
-      {/* Buscador por nombre o documento (Paso 5.6) */}
+      {/* Buscador por nombre, documento, programa o promoción */}
       <form
         method="GET"
         className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-4 shadow-sm border border-[#CCCCCC]/70"
@@ -64,7 +89,7 @@ export default async function CrmPage({
           <input
             name="q"
             defaultValue={termino}
-            placeholder="Buscar becario por nombre, documento o programa..."
+            placeholder="Buscar becario por nombre, documento, programa o promoción..."
             className="w-full rounded-lg border border-[#CCCCCC] pl-10 pr-4 py-2 text-sm focus:border-[#A3161A] focus:outline-none"
           />
         </div>
@@ -89,49 +114,65 @@ export default async function CrmPage({
         <table className="w-full text-left text-sm">
           <thead className="bg-[#F7F7F7] border-b border-[#CCCCCC]/70 text-xs font-bold uppercase text-[#595959]">
             <tr>
-              <th className="p-3.5">Becario</th>
+              <th className="p-3.5">Promoción</th>
               <th className="p-3.5">Documento</th>
-              <th className="p-3.5">Programa / Semestre</th>
-              <th className="p-3.5">Meta Horas</th>
-              <th className="p-3.5">Seguimientos</th>
-              <th className="p-3.5 text-right">Ficha</th>
+              <th className="p-3.5">Becario</th>
+              <th className="p-3.5">Programa</th>
+              <th className="p-3.5">Horas de Servicio Social</th>
+              <th className="p-3.5">Servicio Social del Periodo Lectivo</th>
+              <th className="p-3.5 text-right">Ver ficha</th>
             </tr>
           </thead>
           <tbody>
-            {becarios.map((b) => (
-              <tr
-                key={b.id}
-                className="border-t border-[#CCCCCC]/50 hover:bg-[#F7F7F7]/50"
-              >
-                <td className="p-3.5">
-                  <p className="font-bold text-[#262626]">{b.usuario.nombre}</p>
-                  <p className="text-xs text-[#595959]">{b.usuario.email}</p>
-                </td>
-                <td className="p-3.5 font-mono font-bold">{b.documento}</td>
-                <td className="p-3.5">
-                  <p className="font-medium flex items-center gap-1.5">
-                    <GraduationCap className="h-4 w-4 text-[#A3161A]" />
-                    {b.programa}
-                  </p>
-                  <p className="text-xs text-[#595959]">Semestre {b.semestre}</p>
-                </td>
-                <td className="p-3.5 font-semibold">{b.horasRequeridas} h</td>
-                <td className="p-3.5">
-                  <span className="rounded-full bg-[#A3161A]/10 px-2.5 py-0.5 text-xs font-bold text-[#A3161A]">
-                    {b._count.seguimientos} nota(s)
-                  </span>
-                </td>
-                <td className="p-3.5 text-right">
-                  <Link
-                    href={`/dashboard/crm/${b.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#A3161A] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#7A1013]"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    Ver ficha
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {becarios.map((b) => {
+              const promocion = b.promocion ?? mapaPromo.get(b.documento) ?? '—';
+              const horasLlevadas =
+                (mapaRegistro.get(b.id) ?? 0) + (mapaStaff.get(b.id) ?? 0);
+
+              return (
+                <tr
+                  key={b.id}
+                  className="border-t border-[#CCCCCC]/50 hover:bg-[#F7F7F7]/50"
+                >
+                  <td className="p-3.5 font-semibold text-[#595959] whitespace-nowrap">
+                    {promocion}
+                  </td>
+                  <td className="p-3.5 font-mono font-bold">{b.documento}</td>
+                  <td className="p-3.5">
+                    <p className="font-bold text-[#262626]">{b.usuario.nombre}</p>
+                    <p className="text-xs text-[#595959]">{b.usuario.email}</p>
+                  </td>
+                  <td className="p-3.5">
+                    <p className="font-medium flex items-center gap-1.5">
+                      <GraduationCap className="h-4 w-4 shrink-0 text-[#A3161A]" />
+                      <span>{b.programa || 'Sin programa registrado'}</span>
+                    </p>
+                  </td>
+                  <td className="p-3.5">
+                    <SelectorHorasMeta
+                      becarioId={b.id}
+                      horasLlevadas={horasLlevadas}
+                      horasRequeridas={b.horasRequeridas}
+                    />
+                  </td>
+                  <td className="p-3.5">
+                    <SelectorPeriodoLectivo
+                      becarioId={b.id}
+                      estadoInicial={b.servicioPeriodoLectivo}
+                    />
+                  </td>
+                  <td className="p-3.5 text-right whitespace-nowrap">
+                    <Link
+                      href={`/dashboard/crm/${b.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#A3161A] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#7A1013]"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Ver ficha
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
