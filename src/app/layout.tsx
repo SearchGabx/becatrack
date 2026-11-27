@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { Red_Hat_Display } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-const redHatDisplay = Red_Hat_Display({
+// Fuente hospedada en el repositorio para no depender de Google Fonts durante el build (CI/Docker)
+const redHatDisplay = localFont({
+  src: './fonts/RedHatDisplay-Variable.woff2',
   variable: '--font-red-hat',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '400 800',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
