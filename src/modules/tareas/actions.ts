@@ -28,6 +28,7 @@ export async function cambiarEstadoTarea(
   estado: 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADA',
 ) {
   await requireModule('tareas');
-  await db.tarea.update({ where: { id }, data: { estado } });
+  const nuevo = z.enum(['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA']).parse(estado);
+  await db.tarea.update({ where: { id }, data: { estado: nuevo } });
   revalidatePath('/dashboard/tareas');
 }

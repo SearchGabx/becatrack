@@ -18,6 +18,13 @@ const EventoSchema = z.object({
   cupos: z.coerce.number().int().positive(),
 });
 
+const AsignacionSchema = z.object({
+  eventoId: z.string().min(1),
+  becarioId: z.string().min(1),
+  funcion: z.string().trim().min(3),
+  horas: z.coerce.number().min(0).max(24),
+});
+
 export async function crearEvento(
   _prev: string | undefined,
   formData: FormData,
@@ -35,24 +42,31 @@ export async function asignarBecario(
   formData: FormData,
 ) {
   await soloAdmin();
-  const eventoId = String(formData.get('eventoId'));
-  const becarioId = String(formData.get('becarioId'));
-  const funcion = String(formData.get('funcion'));
-  const horas = Number(formData.get('horas') ?? 0);
+  const datos = AsignacionSchema.safeParse(Object.fromEntries(formData));
+  if (!datos.success) return 'Revisa la asignación: función y horas entre 0 y 24.';
+  const { eventoId, becarioId, funcion, horas } = datos.data;
 
-  const evento = await db.evento.findUniqueOrThrow({
-    where: { id: eventoId },
-    include: { _count: { select: { asignaciones: true } } },
+  // Cupos y asignación en una sola transacción para que dos admins no excedan el cupo.
+  const resultado = await db.$transaction(async (tx) => {
+    const evento = await tx.evento.findUnique({
+      where: { id: eventoId },
+      include: { _count: { select: { asignaciones: true } } },
+    });
+    if (!evento) return 'El evento no existe.';
+    const existente = await tx.asignacionStaff.findUnique({
+      where: { eventoId_becarioId: { eventoId, becarioId } },
+    });
+    if (!existente && evento._count.asignaciones >= evento.cupos) {
+      return 'El evento ya no tiene cupos.';
+    }
+    await tx.asignacionStaff.upsert({
+      where: { eventoId_becarioId: { eventoId, becarioId } },
+      update: { funcion, horas },
+      create: { eventoId, becarioId, funcion, horas },
+    });
+    return null;
   });
-  if (evento._count.asignaciones >= evento.cupos) {
-    return 'El evento ya no tiene cupos.';
-  }
-
-  await db.asignacionStaff.upsert({
-    where: { eventoId_becarioId: { eventoId, becarioId } },
-    update: { funcion, horas },
-    create: { eventoId, becarioId, funcion, horas },
-  });
+  if (resultado) return resultado;
   revalidatePath('/dashboard/staff');
   revalidatePath('/dashboard/conteo-horas');
   return 'Becario asignado.';
