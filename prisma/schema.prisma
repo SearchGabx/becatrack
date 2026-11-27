@@ -19,6 +19,11 @@ enum EstadoRegistro {
   RECHAZADO
 }
 
+enum TipoEscaneo {
+  INICIO
+  FIN
+}
+
 enum EstadoTarea {
   PENDIENTE
   EN_PROGRESO
@@ -51,6 +56,7 @@ model Becario {
   asignaciones    AsignacionStaff[]
   tareas          Tarea[]
   seguimientos    Seguimiento[]
+  escaneos        Escaneo[]
   creadoEn        DateTime          @default(now())
 }
 
@@ -159,4 +165,27 @@ model Schedule {
 
   @@index([studentId])
   @@index([dia, hora_inicio_min, hora_fin_min])
+}
+
+// Módulo de Asistencia y QR (portado desde QROA)
+model Reunion {
+  id       String    @id @default(cuid())
+  nombre   String
+  fecha    DateTime  @default(now())
+  creadoEn DateTime  @default(now())
+  escaneos Escaneo[]
+}
+
+model Escaneo {
+  id        String      @id @default(cuid())
+  reunionId String
+  reunion   Reunion     @relation(fields: [reunionId], references: [id], onDelete: Cascade)
+  becarioId String
+  becario   Becario     @relation(fields: [becarioId], references: [id], onDelete: Cascade)
+  tipo      TipoEscaneo
+  fecha     DateTime    @default(now())
+
+  // Un becario tiene como máximo un INICIO y un FIN por reunión
+  @@unique([reunionId, becarioId, tipo])
+  @@index([becarioId])
 }
