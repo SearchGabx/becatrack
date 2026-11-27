@@ -37,6 +37,8 @@ model Usuario {
   passwordHash String
   rol          Rol
   activo       Boolean      @default(true)
+  // true mientras el usuario conserve la clave inicial o una asignada por el admin
+  debeCambiarClave Boolean  @default(false)
   becario      Becario?
   dependencia  Dependencia?
   creadoEn     DateTime     @default(now())
@@ -94,6 +96,8 @@ model RegistroHoras {
   creadoEn      DateTime       @default(now())
 
   @@index([becarioId])
+  @@index([dependenciaId])
+  @@index([estado])
 }
 
 model Evento {

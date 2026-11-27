@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import type { Workbook } from 'exceljs';
 import {
   previewSchedulesPdf,
   applySchedulesPdf,
@@ -9,6 +9,16 @@ import {
   type PdfPreviewStudent,
   type PdfScheduleRow,
 } from '../actions';
+
+type Fila = Record<string, string | number>;
+
+function agregarHoja(libro: Workbook, nombre: string, filas: Fila[], anchos: number[]) {
+  const hoja = libro.addWorksheet(nombre);
+  const columnas = Object.keys(filas[0] ?? {});
+  hoja.columns = columnas.map((c, i) => ({ header: c, key: c, width: anchos[i] ?? 15 }));
+  hoja.getRow(1).font = { bold: true };
+  for (const f of filas) hoja.addRow(f);
+}
 
 export default function PdfUploadPanel() {
   const [pdfPreview, setPdfPreview] = useState<{
@@ -33,54 +43,36 @@ export default function PdfUploadPanel() {
         return;
       }
 
-      const wb = XLSX.utils.book_new();
-
-      const wsHorarios = XLSX.utils.json_to_sheet(
+      // exceljs reemplaza a xlsx (SheetJS de npm tiene vulnerabilidades sin parche)
+      const { default: ExcelJS } = await import('exceljs');
+      const libro = new ExcelJS.Workbook();
+      agregarHoja(
+        libro,
+        'Horarios Detallados',
         data.detalleHorarios.length > 0
           ? data.detalleHorarios
-          : [
-              {
-                Mensaje:
-                  'No hay horarios cargados actualmente en la base de datos',
-              },
-            ],
+          : [{ Mensaje: 'No hay horarios cargados actualmente en la base de datos' }],
+        [15, 35, 12, 25, 28, 15, 16, 12, 12, 12, 12, 16, 38, 30],
       );
-      wsHorarios['!cols'] = [
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 18 },
-        { wch: 25 },
-        { wch: 28 },
-        { wch: 15 },
-        { wch: 16 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 16 },
-        { wch: 38 },
-        { wch: 30 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsHorarios, 'Horarios Detallados');
-
-      const wsResumen = XLSX.utils.json_to_sheet(data.resumenEstudiantes);
-      wsResumen['!cols'] = [
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 12 },
-        { wch: 25 },
-        { wch: 28 },
-        { wch: 15 },
-        { wch: 16 },
-        { wch: 16 },
-        { wch: 18 },
-        { wch: 14 },
-        { wch: 65 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen por Estudiante');
+      agregarHoja(
+        libro,
+        'Resumen por Estudiante',
+        data.resumenEstudiantes,
+        [15, 35, 12, 25, 28, 15, 16, 16, 18, 14, 65],
+      );
 
       const fecha = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `verificacion_horarios_${fecha}.xlsx`);
+      const contenido = await libro.xlsx.writeBuffer();
+      const url = URL.createObjectURL(
+        new Blob([contenido], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      );
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = `verificacion_horarios_${fecha}.xlsx`;
+      enlace.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       alert('Error generando el archivo Excel: ' + msg);

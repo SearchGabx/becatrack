@@ -31,7 +31,7 @@ export async function crearBecario(
   const passwordHash = await bcrypt.hash(ficha.documento, 10);
   await db.$transaction(async (tx) => {
     const usuario = await tx.usuario.create({
-      data: { nombre, email, passwordHash, rol: 'BECARIO' },
+      data: { nombre, email, passwordHash, rol: 'BECARIO', debeCambiarClave: true },
     });
     await tx.becario.create({
       data: { ...ficha, usuarioId: usuario.id },
@@ -46,8 +46,10 @@ export async function agregarSeguimiento(
   formData: FormData,
 ) {
   await requireModule('crm');
-  const tipo = z.string().min(3).parse(formData.get('tipo'));
-  const nota = z.string().min(3).parse(formData.get('nota'));
-  await db.seguimiento.create({ data: { becarioId, tipo, nota } });
+  const datos = z
+    .object({ tipo: z.string().trim().min(3), nota: z.string().trim().min(3) })
+    .safeParse({ tipo: formData.get('tipo'), nota: formData.get('nota') });
+  if (!datos.success) return; // el formulario exige ambos campos; se ignora un envío incompleto
+  await db.seguimiento.create({ data: { becarioId, ...datos.data } });
   revalidatePath(`/dashboard/crm/${becarioId}`);
 }

@@ -47,8 +47,7 @@ export default function LoginPage() {
             <CucLogo variant="auburn" className="h-11 mb-4" />
             <h1 className="text-2xl font-extrabold text-[#262626]">Ingresar a BECATRACK</h1>
             <p className="mt-1 text-sm text-[#595959]">
-              Becarios y dependencias ingresan con su correo registrado. Para administración,
-              escribe admin.
+              Ingresa con tu correo registrado y tu contraseña.
             </p>
           </div>
 
