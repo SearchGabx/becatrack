@@ -1,7 +1,10 @@
 name: Deploy
 
+# Se despliega solo cuando el CI de main termina en verde
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 permissions:
@@ -10,9 +13,12 @@ permissions:
 
 jobs:
   build-image:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -22,13 +28,18 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/searchgabx/becatrack:latest
+          # latest para el servidor y el SHA del commit para poder volver atrás
+          tags: |
+            ghcr.io/searchgabx/becatrack:latest
+            ghcr.io/searchgabx/becatrack:${{ github.event.workflow_run.head_sha }}
 
   deploy:
     needs: build-image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Copiar archivos de infraestructura
         uses: appleboy/scp-action@v0.1.7
         with:

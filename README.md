@@ -30,7 +30,7 @@
 git clone https://github.com/SearchGabx/becatrack.git
 cd becatrack
 git checkout develop
-cp .env.example .env      # pegar en DATABASE_URL la conexión directa de Neon (?sslmode=require)
+cp .env.example .env      # completar DATABASE_URL (Neon, ?sslmode=require) y AUTH_SECRET
 npm install
 npm run db:migrate
 npm run db:seed
@@ -53,7 +53,7 @@ Para ejecutar `npm run db:seed`, configura `DATABASE_URL` con la base de destino
 
 ```bash
 npm run lint     # ESLint (next/core-web-vitals + next/typescript)
-npm test         # Pruebas unitarias Vitest (permisos y semáforo)
+npm test         # Pruebas unitarias Vitest (permisos, semáforo, dependencias, asistencia QR y límite de intentos)
 npm run build    # prisma generate && next build (genera .next/standalone)
 ```
 
@@ -124,8 +124,8 @@ becatrack/
 │  │     └─ dashboard/
 │  │        ├─ page.tsx             # inicio según el rol
 │  │        ├─ crm/                 # directorio CRM + ficha [id]/page.tsx
-│  │        ├─ horario/             # placeholder (módulo existente)
-│  │        ├─ asistencia/          # placeholder (módulo existente)
+│  │        ├─ horario/             # horario y disponibilidad (integrado desde horario-app)
+│  │        ├─ asistencia/          # reuniones, escáner QR y reporte (integrado desde QROA)
 │  │        ├─ conteo-horas/
 │  │        ├─ registro-horas/
 │  │        ├─ dependencias/
@@ -161,8 +161,8 @@ becatrack/
 | Módulo | Admin | Becario | Dependencia | En este proyecto |
 | :--- | :---: | :---: | :---: | :--- |
 | **CRM de becarios** | Sí | No | No | Construido |
-| **Horario y Disponibilidad** | Sí | No | No | Placeholder protegido |
-| **Asistencia y QR** | Sí | Sí | No | Placeholder protegido |
+| **Horario y Disponibilidad** | Sí | No | No | Carga de CSV/PDF y disponibilidad |
+| **Asistencia y QR** | Sí | Sí | No | El admin escanea; el becario muestra su QR firmado |
 | **Conteo de horas sociales** | Sí | Sí (solo las suyas) | No | Construido |
 | **Registro de horas sociales** | Sí | No | Sí | Construido |
 | **Dependencias activas** | Sí | No | No | Construido |
