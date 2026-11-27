@@ -1,3 +1,0 @@
-becatrack.tech, www.becatrack.tech {
-  reverse_proxy app:3000
-}

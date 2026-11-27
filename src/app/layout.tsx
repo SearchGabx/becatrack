@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 
-// Fuente hospedada en el repositorio para no depender de Google Fonts durante el build (CI/Docker)
+// Fuente hospedada en el repositorio para no depender de Google Fonts durante el build
 const redHatDisplay = localFont({
   src: './fonts/RedHatDisplay-Variable.woff2',
   variable: '--font-red-hat',

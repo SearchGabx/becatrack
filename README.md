@@ -3,7 +3,7 @@
 ![CI](https://github.com/SearchGabx/becatrack/actions/workflows/ci.yml/badge.svg)
 ![Deploy](https://github.com/SearchGabx/becatrack/actions/workflows/deploy.yml/badge.svg)
 
-**BECATRACK** es un SaaS de gestión de becarios de la **Universidad de la Costa (CUC)** construido en **Next.js 15 (App Router) + React 19 + TypeScript + Prisma 6 + Auth.js v5** sobre **PostgreSQL 16** (Neon en desarrollo local y Amazon RDS en producción), con tres roles (**ADMIN**, **BECARIO**, **DEPENDENCIA**), diseño inspirado en **Atomic CRM** aplicando el **Manual Normativo de Marca CUC**, empaquetado en **Docker** y desplegado en **AWS Academy** con **Caddy HTTPS** y **CI/CD en GitHub Actions**.
+**BECATRACK** es un SaaS de gestión de becarios de la **Universidad de la Costa (CUC)** construido en **Next.js 15 (App Router) + React 19 + TypeScript + Prisma 6 + Auth.js v5** sobre **PostgreSQL 16** (Neon en desarrollo local y Amazon RDS en producción), con tres roles (**ADMIN**, **BECARIO**, **DEPENDENCIA**), diseño inspirado en **Atomic CRM** aplicando el **Manual Normativo de Marca CUC**, y desplegado en **AWS Academy (EC2 + RDS)** con **Node.js 20, PM2, Nginx/Certbot** y **CI/CD en GitHub Actions**.
 
 🌐 **Dominio público:** [https://becatrack.tech](https://becatrack.tech)
 
@@ -49,18 +49,19 @@ Para ejecutar `npm run db:seed`, configura `DATABASE_URL` con la base de destino
 
 ---
 
-## 4. Build y Despliegue con Docker y GitHub Actions
+## 4. Build y Despliegue con Node.js, PM2 y GitHub Actions
 
 ```bash
 npm run lint     # ESLint (next/core-web-vitals + next/typescript)
 npm test         # Pruebas unitarias Vitest (permisos, semáforo, dependencias, asistencia QR y límite de intentos)
-npm run build    # prisma generate && next build (genera .next/standalone)
+npm run build    # prisma generate && next build
+npm start        # Inicia el servidor de producción de Next.js en el puerto 3000
 ```
 
-* **Imagen Docker (`Dockerfile`):** Construcción en 3 etapas (`deps`, `build`, `runner`) sobre `node:20-alpine`. Aprovecha `output: 'standalone'` de `next.config.ts` para copiar únicamente `.next/standalone`, `.next/static`, `public` y `prisma`. Al iniciar ejecuta `prisma migrate deploy && node server.js` en el puerto interno `3000`.
-* **Workflow de Despliegue (`.github/workflows/deploy.yml`):** Se dispara en cada push/merge a `main`:
-  1. `build-image`: Construye la imagen Docker y la publica en **GitHub Container Registry (GHCR)** como `ghcr.io/searchgabx/becatrack:latest`.
-  2. `deploy`: Copia `docker-compose.yml` y `Caddyfile` por SCP a la instancia EC2 de AWS Academy y actualiza los contenedores por SSH (`docker compose pull app && docker compose up -d`).
+* **Ejecución en servidor (Node.js 20 + PM2):** La aplicación corre directamente sobre Node.js 20 LTS en la instancia EC2, gestionada con **PM2** (`pm2 start npm --name "becatrack" -- start`) para garantizar alta disponibilidad y reinicio automático ante fallos o reinicios del sistema.
+* **Workflow de Despliegue (`.github/workflows/deploy.yml`):** Se dispara automáticamente cuando el workflow `CI` finaliza con éxito en `main`:
+  1. Se conecta por SSH a la instancia EC2 de AWS Academy.
+  2. Actualiza el código (`git fetch` + `git reset --hard` al SHA validado), instala dependencias (`npm ci`), aplica migraciones pendientes (`npx prisma migrate deploy`), compila la aplicación (`npm run build`) y recarga el proceso en **PM2** (`pm2 reload becatrack --update-env`).
 
 ---
 
@@ -72,13 +73,11 @@ flowchart TD
     DNS --> EIP["AWS Elastic IP"]
     subgraph AWS["AWS Academy · VPC us-east-1"]
         subgraph EC2["EC2 t3.small (Amazon Linux 2023 · sg-web: 80, 443, 22)"]
-            CADDY["Caddy 2 (Contenedor)<br/>Puertos 80 y 443 · SSL Let's Encrypt"] -->|reverse_proxy app:3000| APP["Next.js 15 en Docker<br/>Puerto 3000 interno · Login, roles y módulos"]
+            NGINX["Nginx + Certbot<br/>Puertos 80 y 443 · SSL Let's Encrypt"] -->|proxy_pass 127.0.0.1:3000| APP["Next.js 15 + Node.js 20 (PM2)<br/>Puerto 3000 local · Login, roles y módulos"]
         end
         APP -->|Puerto 5432 interno| RDS[("RDS PostgreSQL 16 (db.t3.micro)<br/>Sin acceso público<br/>sg-db: solo 5432 desde sg-web")]
     end
-    GH["GitHub Actions (ci.yml & deploy.yml)"] -->|build-image| GHCR["GHCR (ghcr.io/searchgabx/becatrack:latest)"]
-    GH -->|SSH / SCP :22| EC2
-    GHCR -->|docker compose pull| EC2
+    GH["GitHub Actions (ci.yml & deploy.yml)"] -->|SSH :22 (git, build, pm2 reload)| EC2
 ```
 
 ### Servicios de Infraestructura y Justificación
@@ -88,13 +87,12 @@ flowchart TD
 | **Dominio y DNS** | `name.com` o `get.tech` (GitHub Student Pack) | Registro `A` (`@` y `www`) del dominio apuntando a la Elastic IP. |
 | **IP fija** | Elastic IP | La IP pública no cambia cuando el Learner Lab se apaga y se vuelve a encender. |
 | **Firewall de la app** | Security Group `sg-web` | Abre `80` y `443` al público y `22` para el despliegue por SSH desde GitHub Actions. |
-| **Servidor** | EC2 `t3.small`, Amazon Linux 2023, Docker | Corre Caddy y el contenedor standalone de Next.js 15. |
-| **Proxy y HTTPS** | Caddy 2 (contenedor) | Recibe el dominio, emite el certificado SSL de Let's Encrypt y reenvía a `app:3000`; así no se expone IP ni puerto interno. |
-| **Aplicación** | Contenedor Next.js 15 (puerto `3000` interno) | Páginas SSR, autenticación Auth.js v5 y Server Actions. |
+| **Servidor** | EC2 `t3.small`, Amazon Linux 2023, Node.js 20 + PM2 | Ejecuta directamente el servidor de producción de Next.js 15 gestionado por PM2. |
+| **Proxy y HTTPS** | Nginx + Certbot (Let's Encrypt) | Recibe el dominio en 80/443, gestiona el certificado SSL y reenvía a `127.0.0.1:3000`; así no se expone el puerto interno. |
+| **Aplicación** | Next.js 15 sobre Node.js 20 (puerto `3000` local) | Páginas SSR, autenticación Auth.js v5 y Server Actions administrados por PM2. |
 | **Base de datos** | RDS PostgreSQL 16, `db.t3.micro`, sin acceso público | Datos relacionales persistentes con backups administrados dentro de la VPC. |
 | **Firewall de la BD** | Security Group `sg-db` | Solo acepta conexiones en el puerto `5432` cuyo origen sea `sg-web`. |
-| **Registro de imágenes** | GitHub Container Registry (GHCR) | Almacena la imagen Docker que construye GitHub Actions. |
-| **CI/CD** | GitHub Actions | `ci.yml` valida cada PR (`lint`, `test`, `build`); `deploy.yml` publica al hacer merge a `main`. |
+| **CI/CD** | GitHub Actions | `ci.yml` valida cada PR (`lint`, `test`, `build`); `deploy.yml` despliega por SSH en EC2 al hacer merge a `main`. |
 
 ---
 
@@ -148,10 +146,7 @@ becatrack/
 │  ├─ auth.ts                       # configuración Auth.js con Prisma y bcrypt
 │  └─ middleware.ts                 # bloquea rutas sin sesión o sin permiso
 ├─ tests/                           # pruebas unitarias Vitest
-├─ Dockerfile
-├─ docker-compose.yml               # producción: app + Caddy
 ├─ .env.example                     # plantilla de variables (URL de Neon)
-├─ Caddyfile                        # dominio y HTTPS
 ├─ next.config.ts
 └─ README.md
 ```
@@ -194,5 +189,5 @@ becatrack/
 * [Prisma ORM Documentation](https://www.prisma.io/docs)
 * [Auth.js v5 Documentation](https://authjs.dev/)
 * [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-* [Docker & Caddy Documentation](https://caddyserver.com/docs/)
+* [PM2 Process Manager Documentation](https://pm2.keymetrics.io/docs/usage/quick-start/)
 * [Manual de Identidad Visual — Universidad de la Costa (CUC)](https://www.cuc.edu.co/)

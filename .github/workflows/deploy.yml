@@ -9,53 +9,25 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  build-image:
+  deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          # latest para el servidor y el SHA del commit para poder volver atrás
-          tags: |
-            ghcr.io/searchgabx/becatrack:latest
-            ghcr.io/searchgabx/becatrack:${{ github.event.workflow_run.head_sha }}
-
-  deploy:
-    needs: build-image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Copiar archivos de infraestructura
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,Caddyfile"
-          target: "~/becatrack"
-      - name: Actualizar contenedores
+      - name: Desplegar en EC2 con Node.js y PM2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             cd ~/becatrack
-            docker compose pull app
-            docker compose up -d
-            docker image prune -f
+            git fetch origin main
+            git reset --hard ${{ github.event.workflow_run.head_sha }}
+            npm ci
+            npx prisma migrate deploy
+            npm run build
+            pm2 reload becatrack --update-env || pm2 start npm --name "becatrack" -- start
+            pm2 save

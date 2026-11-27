@@ -31,13 +31,13 @@
 
 | Capa | Tecnología / Versión | Notas |
 | :--- | :--- | :--- |
-| Framework | Next.js `15.5.29` (App Router) + React `19.1.0` + TypeScript `^5` | `output: 'standalone'`, `serverExternalPackages: ['pdf-parse']` en `next.config.ts` |
+| Framework | Next.js `15.5.29` (App Router) + React `19.1.0` + TypeScript `^5` | `serverExternalPackages: ['pdf-parse']` en `next.config.ts` |
 | Estilos | Tailwind CSS v4 + CSS modular en `src/modules/horario/horario.css` | Paleta CUC + fuente `Red Hat Display` |
 | ORM / BD | Prisma `^6.4.1` + `@prisma/client` + PostgreSQL 16 | Neon en local/Vercel; Amazon RDS (`db.t3.micro`) en AWS Academy |
 | Autenticación | `next-auth` `5.0.0-beta.25` (Auth.js v5) + `bcryptjs` | JWT (8 horas), Edge Middleware + Server Guards |
 | Validación / Extras | `zod`, `lucide-react`, `csv-parse`, `pdf-parse`, `xlsx` | Validación en Server Actions + carga CSV/PDF y exportación Excel |
 | Pruebas y Calidad | Vitest `^3.0.7`, ESLint `^9`, `eslint-config-next` `15.5.29`, Prettier, Commitlint | `tests/permissions.test.ts` (4 tests) y `tests/semaforo.test.ts` (3 tests) |
-| Contenedores / CI | Docker multi-etapa + `docker-compose.yml` + Caddy 2 + GitHub Actions | `.github/workflows/ci.yml` (`lint`, `test`, `build`) y `deploy.yml` (GHCR + EC2 SSH) |
+| Despliegue / CI | Node.js 20 + PM2 + Nginx/Certbot + GitHub Actions | `.github/workflows/ci.yml` (`lint`, `test`, `build`) y `deploy.yml` (EC2 SSH + PM2) |
 
 ---
 
@@ -45,7 +45,7 @@
 
 * **Raíz e Infraestructura:**
   * `package.json`, `next.config.ts`, `tsconfig.json`, `vitest.config.ts`, `eslint.config.mjs`, `commitlint.config.mjs`, `.prettierrc`
-  * `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `Caddyfile`, `.env.example`, `.env`, `README.md`
+  * `.env.example`, `.env`, `README.md`
   * `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `.github/pull_request_template.md`, `.github/CODEOWNERS`
 * **Base de Datos (`prisma/`):**
   * `prisma/schema.prisma` — 10 modelos (`Usuario`, `Becario`, `Seguimiento`, `Dependencia`, `RegistroHoras`, `Evento`, `AsignacionStaff`, `Tarea`, `Student`, `Schedule`) y 3 enums (`Rol`, `EstadoRegistro`, `EstadoTarea`).
@@ -78,7 +78,7 @@
 
 * `npm test`: **7/7 pruebas pasando** (`tests/permissions.test.ts` y `tests/semaforo.test.ts`).
 * `npm run lint`: **0 errores, 0 warnings** (`next lint`).
-* `npm run build`: **Compilación exitosa** (`prisma generate && next build`, 15 rutas + Middleware `85.4 kB`, con `output: 'standalone'` generando `.next/standalone/server.js`).
+* `npm run build`: **Compilación exitosa** (`prisma generate && next build`, 15 rutas + Middleware `85.4 kB`).
 * **Estado del Neon de `horario-app` (`ep-bitter-paper-aczf1svl-pooler.sa-east-1.aws.neon.tech`):**
   * Limpiado y verificado: solo contiene `Student` (`105` filas) y `Schedule` (`493` filas), `0` enums.
   * Todos los 105 estudiantes tienen `correo` `@cuc.edu.co` único (`0` faltantes, `0` duplicados), distribuidos en promociones `2022` (16), `2023` (18), `2024` (24), `2025` (24) y `2026` (23).
@@ -87,9 +87,9 @@
 
 ## 5. Despliegue: Local, Vercel y AWS Academy
 
-* **Desarrollo Local:** Cada integrante usa su Neon gratuito en `.env` (`.env` está en `.gitignore` y `.dockerignore`).
+* **Desarrollo Local:** Cada integrante usa su Neon gratuito en `.env` (`.env` está en `.gitignore`).
 * **Vercel:** Variables requeridas en Vercel: `DATABASE_URL` (del nuevo Neon dedicado), `AUTH_SECRET`, `AUTH_TRUST_HOST=true`. Se recomienda agregar `experimental: { serverActions: { bodySizeLimit: '10mb' } }` en `next.config.ts` para subidas de múltiples PDFs en Horarios.
-* **AWS Academy (Rúbrica Criterio 9):** En AWS EC2 se crea `~/becatrack/.env` apuntando a **Amazon RDS PostgreSQL 16 (`db.t3.micro`)** dentro de la VPC (`sg-db` solo puerto `5432` desde `sg-web`), detrás de **Caddy 2** (puertos `80`/`443` SSL automático). Al arrancar el contenedor ejecuta `prisma migrate deploy && node server.js`.
+* **AWS Academy (Rúbrica Criterio 9):** En AWS EC2 se crea `~/becatrack/.env` apuntando a **Amazon RDS PostgreSQL 16 (`db.t3.micro`)** dentro de la VPC (`sg-db` solo puerto `5432` desde `sg-web`), detrás de **Nginx + Certbot** (puertos `80`/`443` SSL). El despliegue ejecuta `npx prisma migrate deploy`, `npm run build` y administra el proceso con **PM2** (`next start` en el puerto `3000`).
 
 ---
 
