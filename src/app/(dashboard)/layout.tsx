@@ -23,7 +23,7 @@ export default async function DashboardLayout({
         nombre={session.user.name}
         email={session.user.email}
       />
-      <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 px-4 pb-6 pt-20 sm:px-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
           {usuario?.debeCambiarClave && (
             <div className="mb-6 rounded-xl border border-[#C9A227] bg-[#FCD116]/20 p-4 text-sm text-[#262626]">
