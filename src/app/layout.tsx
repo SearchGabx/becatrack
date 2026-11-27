@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   title: 'BECATRACK · CUC Universidad de la Costa',
   description:
     'SaaS de gestión de becarios en Next.js 15: CRM de becarios, horas sociales, dependencias, staff de eventos y tareas en semáforo.',
+  icons: {
+    icon: '/logo-opcion-atlantico.png',
+    shortcut: '/logo-opcion-atlantico.png',
+    apple: '/logo-opcion-atlantico.png',
+  },
 };
 
 export default function RootLayout({
