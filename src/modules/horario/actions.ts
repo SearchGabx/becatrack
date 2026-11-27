@@ -478,13 +478,31 @@ export async function previewSchedulesPdf(
   const validStudents = new Map<string, PdfPreviewStudent>();
   const ignoredPdfs: string[] = [];
 
-  for (const file of files) {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await pdf(buffer);
-    const fullText = data.text;
-    const header = parseHeader(fullText);
-    const rows = parseNewFormat(fullText);
+  const CONCURRENCIA_PDF = 4;
+  const parsedFiles: {
+    fileName: string;
+    header: ReturnType<typeof parseHeader>;
+    rows: ReturnType<typeof parseNewFormat>;
+  }[] = [];
 
+  for (let i = 0; i < files.length; i += CONCURRENCIA_PDF) {
+    const lote = files.slice(i, i + CONCURRENCIA_PDF);
+    const resultadosLote = await Promise.all(
+      lote.map(async (file) => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const data = await pdf(buffer);
+        const fullText = data.text;
+        return {
+          fileName: file.name,
+          header: parseHeader(fullText),
+          rows: parseNewFormat(fullText),
+        };
+      }),
+    );
+    parsedFiles.push(...resultadosLote);
+  }
+
+  for (const { fileName, header, rows } of parsedFiles) {
     const normNombre = normalizar(header.Nombre_Estudiante);
     const pdfWords = normNombre.split(' ').filter((w) => w.length > 2);
 
@@ -510,7 +528,7 @@ export async function previewSchedulesPdf(
 
     if (!matchedStudent) {
       ignoredPdfs.push(
-        `${file.name} (No coincide con nadie: ${header.Nombre_Estudiante || 'Desconocido'})`,
+        `${fileName} (No coincide con nadie: ${header.Nombre_Estudiante || 'Desconocido'})`,
       );
       continue;
     }
@@ -540,7 +558,7 @@ export async function previewSchedulesPdf(
       );
     } else {
       ignoredPdfs.push(
-        `${file.name} (No se detectaron materias con el formato esperado)`,
+        `${fileName} (No se detectaron materias con el formato esperado)`,
       );
     }
   }

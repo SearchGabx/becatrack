@@ -7,7 +7,7 @@ import { FormTarea } from './FormTarea';
 
 export default async function TareasPage() {
   await requireModule('tareas');
-  const [tareas, becarios] = await Promise.all([
+  const [tareasRaw, becarios] = await Promise.all([
     db.tarea.findMany({
       select: {
         id: true,
@@ -32,6 +32,13 @@ export default async function TareasPage() {
       orderBy: { usuario: { nombre: 'asc' } },
     }),
   ]);
+
+  const tareas = [...tareasRaw].sort((a, b) => {
+    const aCompletada = a.estado === 'COMPLETADA' ? 1 : 0;
+    const bCompletada = b.estado === 'COMPLETADA' ? 1 : 0;
+    if (aCompletada !== bCompletada) return aCompletada - bCompletada;
+    return a.fechaLimite.getTime() - b.fechaLimite.getTime();
+  });
 
   return (
     <section className="space-y-6">
@@ -81,7 +88,16 @@ export default async function TareasPage() {
                 title={color}
               />
               <div className="flex-1">
-                <p className="font-bold text-[#262626]">{t.titulo}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold text-[#262626]">{t.titulo}</p>
+                  <span className="rounded-full bg-[#F7F7F7] px-2 py-0.5 text-[11px] font-semibold text-[#595959] border border-[#CCCCCC]/70">
+                    {t.estado === 'EN_PROGRESO'
+                      ? 'En progreso'
+                      : t.estado === 'COMPLETADA'
+                        ? 'Completada'
+                        : 'Pendiente'}
+                  </span>
+                </div>
                 {t.descripcion && (
                   <p className="text-xs text-[#595959]">{t.descripcion}</p>
                 )}
@@ -91,13 +107,24 @@ export default async function TareasPage() {
                 </p>
               </div>
               {t.estado !== 'COMPLETADA' && (
-                <form
-                  action={cambiarEstadoTarea.bind(null, t.id, 'COMPLETADA')}
-                >
-                  <button className="rounded-lg bg-[#078930] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 cursor-pointer">
-                    Marcar completada
-                  </button>
-                </form>
+                <div className="flex items-center gap-2">
+                  {t.estado === 'PENDIENTE' && (
+                    <form
+                      action={cambiarEstadoTarea.bind(null, t.id, 'EN_PROGRESO')}
+                    >
+                      <button className="rounded-lg border border-[#C9A227] bg-[#FCD116]/20 px-3 py-1.5 text-xs font-bold text-[#262626] hover:bg-[#FCD116]/40 cursor-pointer">
+                        En progreso
+                      </button>
+                    </form>
+                  )}
+                  <form
+                    action={cambiarEstadoTarea.bind(null, t.id, 'COMPLETADA')}
+                  >
+                    <button className="rounded-lg bg-[#078930] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 cursor-pointer">
+                      Marcar completada
+                    </button>
+                  </form>
+                </div>
               )}
             </li>
           );

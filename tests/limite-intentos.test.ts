@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BLOQUEO_MS,
+  MAX_ENTRADAS,
   MAX_FALLOS,
   bloqueado,
   limpiarFallos,
@@ -20,5 +21,15 @@ describe('límite de intentos de inicio de sesión', () => {
     registrarFallo('luis');
     limpiarFallos('luis');
     expect(bloqueado('luis')).toBe(false);
+  });
+
+  it('purga entradas vencidas al alcanzar el límite de memoria', () => {
+    const t = 2_000_000;
+    for (let i = 0; i < MAX_FALLOS; i++) registrarFallo('vencido-0', t);
+    for (let i = 1; i < MAX_ENTRADAS; i++) {
+      registrarFallo(`usuario-${i}`, t + 100);
+    }
+    registrarFallo('nuevo-usuario', t + BLOQUEO_MS + 500);
+    expect(bloqueado('vencido-0', t + BLOQUEO_MS + 500)).toBe(false);
   });
 });
