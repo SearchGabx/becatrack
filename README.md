@@ -72,7 +72,7 @@ flowchart TD
     U["Usuario (Navegador)"] -->|HTTPS 443| DNS["Dominio Propio (.tech / name.com)<br/>Registro A -> Elastic IP"]
     DNS --> EIP["AWS Elastic IP"]
     subgraph AWS["AWS Academy · VPC us-east-1"]
-        subgraph EC2["EC2 t3.small (Amazon Linux 2023 · sg-web: 80, 443, 22)"]
+        subgraph EC2["EC2 t3.micro (Amazon Linux 2023 · sg-web: 80, 443, 22)"]
             NGINX["Nginx + Certbot<br/>Puertos 80 y 443 · SSL Let's Encrypt"] -->|proxy_pass 127.0.0.1:3000| APP["Next.js 15 + Node.js 20 (PM2)<br/>Puerto 3000 local · Login, roles y módulos"]
         end
         APP -->|Puerto 5432 interno| RDS[("RDS PostgreSQL 16 (db.t3.micro)<br/>Sin acceso público<br/>sg-db: solo 5432 desde sg-web")]
@@ -87,7 +87,7 @@ flowchart TD
 | **Dominio y DNS** | `name.com` o `get.tech` (GitHub Student Pack) | Registro `A` (`@` y `www`) del dominio apuntando a la Elastic IP. |
 | **IP fija** | Elastic IP | La IP pública no cambia cuando el Learner Lab se apaga y se vuelve a encender. |
 | **Firewall de la app** | Security Group `sg-web` | Abre `80` y `443` al público y `22` para el despliegue por SSH desde GitHub Actions. |
-| **Servidor** | EC2 `t3.small`, Amazon Linux 2023, Node.js 20 + PM2 | Ejecuta directamente el servidor de producción de Next.js 15 gestionado por PM2. |
+| **Servidor** | EC2 `t3.micro`, Amazon Linux 2023, Node.js 20 + PM2 | Ejecuta directamente el servidor de producción de Next.js 15 gestionado por PM2. |
 | **Proxy y HTTPS** | Nginx + Certbot (Let's Encrypt) | Recibe el dominio en 80/443, gestiona el certificado SSL y reenvía a `127.0.0.1:3000`; así no se expone el puerto interno. |
 | **Aplicación** | Next.js 15 sobre Node.js 20 (puerto `3000` local) | Páginas SSR, autenticación Auth.js v5 y Server Actions administrados por PM2. |
 | **Base de datos** | RDS PostgreSQL 16, `db.t3.micro`, sin acceso público | Datos relacionales persistentes con backups administrados dentro de la VPC. |
