@@ -5,7 +5,7 @@
 
 **BECATRACK** es un SaaS de gestión de becarios de la **Universidad de la Costa (CUC)** construido en **Next.js 15 (App Router) + React 19 + TypeScript + Prisma 6 + Auth.js v5** sobre **PostgreSQL 16** (Neon en desarrollo local y Amazon RDS en producción), con tres roles (**ADMIN**, **BECARIO**, **DEPENDENCIA**), diseño inspirado en **Atomic CRM** aplicando el **Manual Normativo de Marca CUC**, y desplegado en **AWS Academy (EC2 + RDS)** con **Node.js 20, PM2, Nginx/Certbot** y **CI/CD en GitHub Actions**.
 
-🌐 **Dominio público:** [https://becatrack.tech](https://becatrack.tech)
+🌐 **Dominio público:** [https://bktrack.tech](https://bktrack.tech)
 
 ---
 

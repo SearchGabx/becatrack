@@ -19,7 +19,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
+          username: ${{ secrets.EC2_USER || 'ec2-user' }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
@@ -28,6 +28,7 @@ jobs:
             git reset --hard ${{ github.event.workflow_run.head_sha }}
             npm ci
             npx prisma migrate deploy
+            npx prisma db push
             npm run build
             pm2 reload becatrack --update-env || pm2 start npm --name "becatrack" -- start
             pm2 save
